@@ -552,6 +552,8 @@
   .cw-fab{position:static;z-index:65;width:34px;height:34px;border:none;background:transparent;
     display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;flex:0 0 auto}
   .cw-fab svg{width:20px;height:20px}
+  .cw-fab.zk-locked{color:#e08b3a}
+  #cwZkLock{margin:calc(10px + env(safe-area-inset-top)) 2px 0 0}
   #cwBack{margin:calc(10px + env(safe-area-inset-top)) 0 0 12px}
   #cwMore{margin:calc(10px + env(safe-area-inset-top)) 12px 0 0}
   .cw-menu{position:absolute;top:calc(116px + env(safe-area-inset-top));right:12px;z-index:70;min-width:190px;padding:8px;border-radius:14px;
@@ -1033,6 +1035,8 @@
   .fav-name{flex:1;min-width:0}
   .fav-name .fv-t{font-size:14px;font-weight:650;color:var(--ink);word-break:break-word}
   .fav-name .fv-p{font-size:12px;color:var(--ink-2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fav-name .fv-p .fv-pv{width:34px;height:34px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-right:4px;display:inline-block}
+  .fav-name .fv-p .fv-pv-tag{font-size:11px;color:var(--ink-3);vertical-align:middle}
   .fav-name .fv-m{font-size:11px;color:var(--ink-3);margin-top:5px}
   .fav-badge{flex:0 0 auto;font-size:10px;font-weight:700;color:var(--ink-3);border:1px solid var(--line);border-radius:9px;padding:3px 7px}
   /* v79：收藏包双头像（本人 + 对方交叉重叠）与收藏时间线 */
@@ -1314,7 +1318,7 @@
           </div>
         </div>
         <div class="glass cell-group" style="cursor:pointer" id="xuPetSetting"><div class="cell" style="border:0"><div class="ci">🐾</div><span class="ct">桌宠</span><span class="cv" id="xuPetStatus">后续开放</span><span class="arr">›</span></div></div>
-        <div class="glass cell-group" style="cursor:pointer" id="xuVersionStatus"><div class="cell" style="border:0"><div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div><span class="ct">版本状态</span><span class="cv" id="xuVerLabel">测试版 v1.14</span><span class="arr">›</span></div></div>
+        <div class="glass cell-group" style="cursor:pointer" id="xuVersionStatus"><div class="cell" style="border:0"><div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div><span class="ct">版本状态</span><span class="cv" id="xuVerLabel">测试版 v1.17</span><span class="arr">›</span></div></div>
       </section>
     </div>
   </div>
@@ -1323,14 +1327,15 @@
     <div class="xu-modal xu-version-modal">
       <h3>版本信息</h3>
       <div class="xu-ver-info">
-        <div class="xu-ver-row"><span class="label">当前版本</span><span class="value" id="xuVerCurrent">v1.16</span></div>
+        <div class="xu-ver-row"><span class="label">当前版本</span><span class="value" id="xuVerCurrent">v1.17</span></div>
         <div class="xu-ver-row"><span class="label">版本类型</span><span class="value xu-ver-badge-test">测试版</span></div>
         <div class="xu-ver-row"><span class="label">包名</span><span class="value" id="xuVerPkg">com.xushi.app</span></div>
         <div class="xu-ver-divider"></div>
-        <p class="xu-ver-note">数据将随新版本自动迁移，无需手动备份。</p>
+        <p class="xu-ver-note" id="xuVerState">检查更新可获取最新版本；发现新版本后可直接在本页升级。</p>
       </div>
       <div class="xu-ver-actions">
         <button type="button" class="primary" id="xuCheckUpdateBtn">检查更新</button>
+        <button type="button" id="xuUpdateNowBtn" style="display:none;background:linear-gradient(145deg,#6d8fe0,#4a6fc0);color:#fff;border-color:transparent">立即更新</button>
         <button type="button" id="xuCloseVerModal">关闭</button>
       </div>
     </div>
@@ -1343,6 +1348,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="cw-heads" id="cwHeads"></div>
+      <!-- v1.18：字卡配置上锁开关——锁定后导入/恢复/清空均不改动字卡配置 -->
+      <button class="cw-fab" id="cwZkLock" aria-label="字卡上锁" title="字卡配置上锁：锁定后导入/恢复/清空都不会改动字卡">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>
+      </button>
       <button class="cw-fab" id="cwMore" aria-label="功能设置">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -1454,6 +1463,7 @@
         <div class="tf-d-ava" id="tfDAva"></div>
         <div class="tf-d-name" id="tfDName"></div>
         <div class="tf-d-info">
+          <div class="tf-d-row"><span>转账金额</span><span id="tfDAmount"></span></div>
           <div class="tf-d-row"><span>转账时间</span><span id="tfDTime"></span></div>
           <div class="tf-d-row"><span>转账备注</span><span id="tfDNote"></span></div>
           <div class="tf-d-row"><span>领取状态</span><span id="tfDState"></span></div>
@@ -1885,6 +1895,23 @@
         </div>
       </div>
       <input type="file" id="dmImportFile" accept="application/json,.json" style="display:none">
+      <div class="dm-sec">其它资源数据导入</div>
+      <div class="glass cell-group">
+        <div class="cell" id="dmOtherImport">
+          <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.2V4"/><path d="M7.4 8.6L12 4l4.6 4.6"/><path d="M4.5 19.2h15"/></svg></div>
+          <span class="ct">其它资源数据导入<small>导入 Milk/ChatApp 等外部聊天备份：聊天记录、字卡、表情包全部追加，不覆盖现有数据</small></span>
+          <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+      </div>
+      <input type="file" id="dmOtherImportFile" accept="application/json,.json" style="display:none">
+      <div class="dm-sec">数据清理</div>
+      <div class="glass cell-group">
+        <div class="cell" id="dmClearAll">
+          <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></div>
+          <span class="ct">现有数据全数清空<small>清空聊天、信件、字卡、收藏、表情包、相册与设置（字卡上锁时保留字卡）</small></span>
+          <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+      </div>
       <!-- v81：聊天截图区块已按用户要求移除 -->
     </div>
   </div>
@@ -3275,6 +3302,7 @@
     var avaEl = document.getElementById("tfDAva");
     if(avaEl){ avaEl.style.backgroundImage = ava ? "url(" + ava + ")" : "none"; }
     var nm = document.getElementById("tfDName"); if(nm) nm.textContent = name;
+    var am = document.getElementById("tfDAmount"); if(am) am.textContent = "¥" + (m.amount || "0.00");
     var tm = document.getElementById("tfDTime"); if(tm) tm.textContent = fmtTfTime(m.ts, m.time || "");
     var nt = document.getElementById("tfDNote"); if(nt) nt.textContent = m.note || "无";
     var st = document.getElementById("tfDState"); if(st) st.textContent = transferState(m);
@@ -5175,7 +5203,10 @@
   }
   function shotSave(){
     if(!shotCanvas){ vpToast("请先生成截图"); return; }
-    var name = "聊天截图_" + new Date().getTime() + ".jpg";
+    // v1.18：截图相册按角色命名专属合集（叙时-角色名-时间）
+    var who = "";
+    try{ who = String(chatCurName() || "").trim(); }catch(e){}
+    var name = "叙时-" + (who || "聊天") + "-" + new Date().getTime() + ".jpg";
     var url = null;
     try{ url = shotCanvas.toDataURL("image/jpeg", 0.82); }catch(e){}
     if(!url){ try{ url = shotCanvas.toDataURL("image/png"); }catch(e2){ vpToast("保存失败"); return; } }
@@ -5368,11 +5399,11 @@
       '<div class="fs-ava me"' + meStyle + '>' + (a.me ? "" : esc(a.meTx)) + '</div>' +
     '</div>';
   }
-  // v80：收藏里的转账/图片/语音/投票消息按真实内容显示
+  // v1.18：收藏列表预览——转账显示备注，表情包/截图显示真实缩略图
   function favPreview(m){
     if(!m) return "";
-    if(m.type === "transfer") return (m.from === "in" ? "收到转账 " : "转账 ") + (m.amount || "0.00") + " 元";
-    if(m.type === "image") return "[图片]";
+    if(m.type === "transfer") return (m.from === "in" ? "收到转账 " : "转账 ") + (m.amount || "0.00") + " 元" + (m.note ? " · " + m.note : "");
+    if(m.type === "image") return '<img class="fv-pv" src="' + esc(m.src || "") + '" alt="' + (m._emoji ? "表情包" : "截图") + '"><span class="fv-pv-tag">' + (m._emoji ? "表情包" : "截图") + "</span>";
     if(m.type === "voice") return "[语音] " + String(m.text || "");
     if(m.type === "survey") return "[投票] " + String(m.q || m.text || "");
     return String(m.text || "").replace(/\s+/g, " ").slice(0, 40);
@@ -5414,7 +5445,7 @@
         favAvaHtml(f.cid) +
         '<div class="fav-name">' +
           '<div class="fv-t">' + esc(f.name || "收藏") + '</div>' +
-          '<div class="fv-p">' + esc(prev) + '</div>' +
+          '<div class="fv-p">' + prev + '</div>' +
           '<div class="fv-m">' + (f.time ? esc(f.time) + " · " : "") + msgs.length + ' 条</div>' +
         '</div>' +
         '<span class="fav-badge">打包</span>' +
@@ -6266,6 +6297,34 @@
     try{ if(typeof xuScheduleSnap === "function") xuScheduleSnap(); }catch(e){}
     return true;
   }
+  // v1.18：字卡配置上锁——锁定后批量导入/全量恢复/清空均不改动字卡配置
+  var ZK_LOCK_KEY = "xushi_zk_lock_v1";
+  function zkLocked(){ try{ return localStorage.getItem(ZK_LOCK_KEY) === "1"; }catch(e){ return false; } }
+  function zkSetLock(v){
+    try{ localStorage.setItem(ZK_LOCK_KEY, v ? "1" : "0"); }catch(e){}
+    zkRenderLockBtn();
+    try{ if(typeof xuScheduleSnap === "function") xuScheduleSnap(); }catch(e){}
+  }
+  function zkRenderLockBtn(){
+    var b = document.getElementById("cwZkLock");
+    if(!b) return;
+    var on = zkLocked();
+    b.classList.toggle("zk-locked", on);
+    b.setAttribute("aria-label", on ? "字卡已上锁" : "字卡未上锁");
+    b.setAttribute("title", on ? "字卡已上锁：导入/恢复/清空不会改动字卡" : "字卡未上锁：点击锁定配置");
+    b.innerHTML = on
+      ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="#fff" stroke="none"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>';
+  }
+  (function(){
+    var b = document.getElementById("cwZkLock");
+    if(b) b.addEventListener("click", function(){
+      var next = !zkLocked();
+      zkSetLock(next);
+      vpToast(next ? "字卡配置已上锁：导入/恢复/清空不会改动字卡" : "字卡配置已解锁");
+    });
+    zkRenderLockBtn();
+  })();
   function zkRefreshUI(){
     if(typeof renderFolders === "function") renderFolders();
     if(zkInner && zkInner.classList.contains("show")) renderSubs();
@@ -6288,6 +6347,9 @@
       return;
     }
     zkDbLoad().then(function(v){
+      // v1.17：异步兜底前先看 localStorage 现值——导入字卡等流程可能已写入更新的字卡，避免旧 IDB 覆盖新数据
+      var _now = null; try{ _now = JSON.parse(localStorage.getItem(ZK_KEY) || "null"); }catch(e){}
+      if(Array.isArray(_now) && _now.length){ zkCache = _now; zkEnsureIds(zkCache); zkRefreshUI(); return; }
       if(v && Array.isArray(v) && v.length > 0){
         var purged = zkPurgePresets(v);
         zkCache = purged.list;
@@ -7185,12 +7247,25 @@
       try{ localStorage.setItem(ACTIVE_KEY, JSON.stringify(cfg)); }catch(e){}
       try{ idbSet(ACTIVE_KEY, cfg); }catch(e){}
       // v93：把主动来信配置同步给原生层，供"关闭APP后"的闹钟兜底通知使用
+      // v1.18：额外上报 nextAt（下一次来信的绝对到期时间）与 nextText（要发的字卡内容），
+      // 原生据此注册一次性精确闹钟，退到后台也能自主发消息并弹通知
       try{
         if(window.XuNative && typeof XuNative.syncActive === "function"){
+          var _now = Date.now();
+          var _msgInt = cfg.msgMin < 0 ? (cfg.msgNext > 0 ? cfg.msgNext : 15 * 60000) : cfg.msgMin * 60000;
+          var _mailInt = cfg.mailMin < 0 ? (cfg.mailNext > 0 ? cfg.mailNext : 1440 * 60000) : cfg.mailMin * 60000;
+          var _nextMsgAt = (cfg.msgMin !== 0 && cfg.lastMsg) ? (_now + Math.max(1000, _msgInt - (_now - Number(cfg.lastMsg)))) : 0;
+          var _nextMailAt = (cfg.mailMin !== 0 && cfg.lastMail) ? (_now + Math.max(1000, _mailInt - (_now - Number(cfg.lastMail)))) : 0;
+          var _nextAt = 0;
+          if(_nextMsgAt && _nextMailAt) _nextAt = Math.min(_nextMsgAt, _nextMailAt);
+          else _nextAt = _nextMsgAt || _nextMailAt;
+          var _nextText = "";
+          try{ var _c = pickCid(); if(_c){ _nextText = zkPickText(_c) || ""; } }catch(e){}
           XuNative.syncActive(JSON.stringify({
             msgMin: cfg.msgMin, mailMin: cfg.mailMin, notify: !!cfg.notify, priv: !!cfg.priv,
             lastMsg: Number(cfg.lastMsg)||0, lastMail: Number(cfg.lastMail)||0,
-            msgNext: Number(cfg.msgNext)||0, mailNext: Number(cfg.mailNext)||0
+            msgNext: Number(cfg.msgNext)||0, mailNext: Number(cfg.mailNext)||0,
+            nextAt: Number(_nextAt)||0, nextText: String(_nextText||"")
           }));
         }
       }catch(e){}
@@ -7320,6 +7395,47 @@
       }
       if(dirty) actSave(cfg);
     }
+    // v1.18：原生精确闹钟唤醒入口——退到后台时由 Android 闹钟拉起本函数，
+    // 自主发送到期消息/信件并弹通知，然后立即上报心跳并同步下一次时间
+    window.xuWakeTick = function(){
+      try{
+        var cfg = actLoad(), now = Date.now(), dirty = false;
+        var msgInt = cfg.msgMin < 0 ? (cfg.msgNext > 0 ? cfg.msgNext : 15 * 60000) : cfg.msgMin * 60000;
+        if(cfg.msgMin !== 0 && cfg.lastMsg && now - cfg.lastMsg >= msgInt){
+          var cid = pickCid();
+          if(cid){
+            var sent = [];
+            try{
+              var n = 1 + Math.floor(Math.random() * 2);
+              var guard = 0;
+              while(sent.length < n && guard++ < 10){
+                var t2 = zkPickText(cid) || "";
+                if(t2 && t2 !== "当前未配置字卡" && sent.indexOf(t2) < 0) sent.push(t2);
+              }
+            }catch(e){}
+            if(!sent.length) sent = ["在忙吗？突然想找你说说话。"];
+            var meta = (metaLoad()[cid] || {});
+            var who = meta.note || meta.name || "TA";
+            sent.forEach(function(tx){
+              pushActiveMsg(cid, tx);
+              notify(who, tx, cid);
+            });
+          }
+          cfg.lastMsg = now;
+          if(cfg.msgMin < 0) cfg.msgNext = (5 + Math.floor(Math.random() * 56)) * 60000;
+          dirty = true;
+        }
+        var mailInt = cfg.mailMin < 0 ? (cfg.mailNext > 0 ? cfg.mailNext : 1440 * 60000) : cfg.mailMin * 60000;
+        if(cfg.mailMin !== 0 && cfg.lastMail && now - cfg.lastMail >= mailInt){
+          pushMail();
+          cfg.lastMail = now;
+          if(cfg.mailMin < 0) cfg.mailNext = (1440 + Math.floor(Math.random() * 2880)) * 60000;
+          dirty = true;
+        }
+        if(dirty) actSave(cfg);
+        try{ if(window.XuNative && typeof XuNative.heartbeat === "function") XuNative.heartbeat(); }catch(e){}
+      }catch(e){}
+    };
     var msgSel = document.getElementById("dmMsgSel"), mailSel = document.getElementById("dmMailSel"),
         notifySw = document.getElementById("dmNotifySw"), privSw = document.getElementById("dmPrivSw"), avatarSw = document.getElementById("dmAvatarSw");
     function syncUI(){
@@ -7519,12 +7635,30 @@
     function dmImport(file){
       var fr=new FileReader();fr.onload=function(){
         var d=null;try{d=JSON.parse(String(fr.result||""))}catch(e){}
-        if(!d||typeof d!=="object"||(!d.localStorage&&!d.data)){vpToast("文件格式不对，不是叙时全量备份");return;}
+        if(!d||typeof d!=="object"||(!d.localStorage&&!d.data)){
+          // v1.17：兼容 ChatApp 导出格式（messages + customReplies）——合并导入，不覆盖现有数据
+          if(d && (d.appName === "ChatApp" || (Array.isArray(d.messages) && Array.isArray(d.customReplies)))){
+            try{ xuImportChatApp(d); }catch(e2){ vpToast("导入失败：" + ((e2 && e2.message) || e2)); }
+            return;
+          }
+          vpToast("文件格式不对，不是叙时全量备份");return;
+        }
         var local=d.localStorage||d.data||{},dbs=Array.isArray(d.indexedDB)?d.indexedDB:[];
         if(!confirm("将用备份覆盖当前叙时的全部数据，包括聊天记录、字卡、收藏、信件、表情包、头像、背景和设置。建议先导出当前备份。确定继续？"))return;
+        // v1.18：字卡上锁时保护字卡配置不被备份覆盖
+        var _zkLocked = (typeof zkLocked === "function") ? zkLocked() : false;
+        var _zkKeep = null, _zkLockKeep = null;
+        if(_zkLocked){
+          try{ _zkKeep = localStorage.getItem("glass_chat_zk_folders_v2"); _zkLockKeep = localStorage.getItem("xushi_zk_lock_v1"); }catch(e){}
+        }
         try{
           Object.keys(localStorage).forEach(function(k){localStorage.removeItem(k)});
-          Object.keys(local).forEach(function(k){localStorage.setItem(k,String(local[k]))});
+          Object.keys(local).forEach(function(k){
+            if(_zkLocked && (k === "glass_chat_zk_folders_v2" || k === "xushi_zk_lock_v1")) return;
+            localStorage.setItem(k,String(local[k]));
+          });
+          if(_zkLocked && _zkKeep !== null) localStorage.setItem("glass_chat_zk_folders_v2", _zkKeep);
+          if(_zkLocked && _zkLockKeep !== null) localStorage.setItem("xushi_zk_lock_v1", _zkLockKeep);
         }catch(e){vpToast("恢复本地数据失败："+(e.message||e));return;}
         var restoreJobs=dbs.map(xuRestoreDb);
         xuListDbNames().then(function(names){
@@ -7584,6 +7718,117 @@
           vpToast("全量数据恢复完成，正在重新加载");setTimeout(function(){location.reload()},800)}).catch(function(e){vpToast("部分数据恢复失败："+(e.message||e)+"。请保留备份文件")});
       };fr.readAsText(file);
     }
+    // v1.18：ChatApp/Milk 导出文件合并导入——聊天记录并入同名会话（全追加不覆盖）、
+    // 字卡按"大文件名分组（文件夹）+ 小文件夹分类（sub）"归并、表情包一并导入；字卡上锁时跳过字卡
+    function xuImportChatApp(d){
+      var msgs = Array.isArray(d.messages) ? d.messages : [];
+      var replies = Array.isArray(d.customReplies) ? d.customReplies : [];
+      var partner = String((d.settings && d.settings.partnerName) || (d.settings && d.settings.myName) || "TA").trim();
+      // ---- 1) 聊天记录：按时间升序转叙时格式 ----
+      var list = msgs.filter(function(m){ return m && m.type === "normal" && typeof m.text === "string" && m.text.trim(); })
+        .sort(function(a, b){ return String(a.timestamp || "").localeCompare(String(b.timestamp || "")); });
+      var converted = list.map(function(m){
+        var t = Date.parse(m.timestamp || ""); if(isNaN(t)) t = Date.now();
+        var dt = new Date(t), hh = (dt.getHours() < 10 ? "0" : "") + dt.getHours(), mm = (dt.getMinutes() < 10 ? "0" : "") + dt.getMinutes();
+        var obj = { from: m.sender === "user" ? "out" : "in", text: m.text, time: hh + ":" + mm, ts: t };
+        if(obj.from === "out") obj.state = "read";
+        return obj;
+      });
+      // 追加进现有会话：找到同名联系人（大分组），没有则新建 imp 会话；按 text+ts 去重，绝不覆盖已有消息
+      var all = (typeof cwLoad === "function" && cwLoad()) || {};
+      var mta = (typeof metaLoad === "function" && metaLoad()) || {};
+      var targetCid = null;
+      Object.keys(mta).forEach(function(id){
+        if(mta[id] && mta[id].name === partner && !mta[id].deleted){ targetCid = id; }
+      });
+      if(!targetCid) targetCid = "imp" + Date.now();
+      if(!all[targetCid]) all[targetCid] = { msgs: [] };
+      var existKeys = {};
+      (all[targetCid].msgs || []).forEach(function(x){ existKeys[String(x.text || "") + "|" + (Number(x.ts) || 0)] = true; });
+      var addedChat = 0;
+      converted.forEach(function(m){
+        var k = String(m.text || "") + "|" + (Number(m.ts) || 0);
+        if(existKeys[k]) return;
+        existKeys[k] = true;
+        all[targetCid].msgs.push(m);
+        addedChat++;
+      });
+      all[targetCid].msgs.sort(function(a, b){ return (Number(a.ts) || 0) - (Number(b.ts) || 0); });
+      // 同步回写 localStorage 双写，防重启丢失
+      try{ localStorage.setItem(CW_MSGS_KEY, JSON.stringify(all)); }catch(e){}
+      if(typeof cwSave === "function") cwSave();
+      if(!mta[targetCid]){
+        mta[targetCid] = { name: partner, avatar: partner ? partner[0].toUpperCase() : "?", type: "contact", note: "", pinned: false, blocked: false, deleted: false, blockedAt: 0, letterSent: false };
+        try{ localStorage.setItem(CW_META_KEY, JSON.stringify(mta)); }catch(e){}
+        if(typeof metaSave === "function") metaSave();
+      }
+      // ---- 2) 字卡：按 Milk 分组结构归并（大文件名为分组=文件夹，小文件夹为分类=sub）----
+      var zkChanged = false, zkAdded = 0, lockedNote = "";
+      var cards = replies.filter(function(r){ return typeof r === "string" && r.trim(); })
+        .map(function(r, i){ return { id: "impc" + Date.now() + "_" + i, text: r, shielded: false }; });
+      if(cards.length){
+        if(typeof zkLocked === "function" && zkLocked()){
+          lockedNote = "（字卡已上锁，跳过导入）";
+        } else {
+          var zk = [];
+          try{ var _raw0 = localStorage.getItem("glass_chat_zk_folders_v2"); if(_raw0){ var _p0 = JSON.parse(_raw0); if(Array.isArray(_p0)) zk = _p0; } }catch(e){}
+          var groupName = partner + "的字卡";
+          var folder = zk.filter(function(f){ return f && f.name === groupName; })[0];
+          var subName = "导入字卡";
+          var targetSub = null, subIdx = -1;
+          if(folder){
+            (folder.subs || []).forEach(function(s, i){ if(s && s.name === subName){ targetSub = s; subIdx = i; } });
+          }
+          if(!targetSub){
+            targetSub = { name: subName, color: "#7d93b8", cards: [] };
+            if(!folder){ folder = { id: "impf" + Date.now(), name: groupName, subs: [targetSub] }; zk.push(folder); }
+            else { (folder.subs = folder.subs || []).push(targetSub); subIdx = folder.subs.length - 1; }
+          }
+          var existCards = {};
+          (targetSub.cards || []).forEach(function(c){ existCards[String(c.text || "")] = true; });
+          cards.forEach(function(c){
+            if(existCards[c.text]) return;
+            existCards[c.text] = true;
+            targetSub.cards.push(c);
+            zkAdded++;
+          });
+          if(typeof zkSave === "function") zkSave(zk);
+          zkChanged = true;
+        }
+      }
+      // ---- 3) 表情包：兼容常见字段（Milk/ChatApp 标准导出一般没有表情包字段）----
+      var bqAdded = 0, bqNote = "";
+      var packSrc = d.stickers || d.emojiPacks || d.emoji || d.stickerData || d.customStickers || null;
+      if(Array.isArray(packSrc) && packSrc.length){
+        var bqb = [];
+        try{ var _rawB = localStorage.getItem("glass_chat_bqb_v2"); if(_rawB){ var _pb = JSON.parse(_rawB); if(Array.isArray(_pb)) bqb = _pb; } }catch(e){}
+        packSrc.forEach(function(p, i){
+          if(!p) return;
+          var name = p.name || p.title || "导入表情包" + (i + 1);
+          var items = [];
+          if(Array.isArray(p.items)) items = p.items.slice();
+          else if(Array.isArray(p.list)) items = p.list.slice();
+          else if(Array.isArray(p)) items = p.slice();
+          if(!items.length) return;
+          var exists = bqb.some(function(f){ return f && f.name === name; });
+          if(exists) return;
+          bqb.push({ id: "impbq" + Date.now() + "_" + i, name: name, color: "#7d93b8", shielded: false, items: items });
+          bqAdded++;
+        });
+        if(bqAdded){ try{ localStorage.setItem("glass_chat_bqb_v2", JSON.stringify(bqb)); }catch(e){} if(typeof bqbSave === "function") bqbSave(bqb); }
+      } else {
+        bqNote = "，文件中未找到表情包数据";
+      }
+      // ---- 4) 落盘 + 原生快照 + 刷新 ----
+      try{ if(typeof xuFlushToNative === "function") xuFlushToNative(); }catch(e){}
+      setTimeout(function(){ try{ if(typeof xuFlushToNative === "function") xuFlushToNative(); }catch(e){} }, 300);
+      var sum = [];
+      if(converted.length) sum.push("聊天 " + addedChat + "/" + converted.length + " 条");
+      if(cards.length) sum.push("字卡 " + zkAdded + "/" + cards.length + " 张" + lockedNote);
+      if(bqAdded) sum.push("表情包 " + bqAdded + " 个");
+      vpToast("导入完成：" + (sum.join("、") || "无新数据") + bqNote + "，正在重新加载");
+      setTimeout(function(){ location.reload(); }, 900);
+    }
     var expRow = document.getElementById("dmExport"), impRow = document.getElementById("dmImport"),
         impFile = document.getElementById("dmImportFile");
     if(expRow) expRow.addEventListener("click", dmExport);
@@ -7592,6 +7837,63 @@
       var f = impFile.files && impFile.files[0];
       if(f) dmImport(f);
       impFile.value = "";
+    });
+    // v1.18：其它资源数据导入——Milk/ChatApp 备份合并追加（不覆盖）
+    var othRow = document.getElementById("dmOtherImport"), othFile = document.getElementById("dmOtherImportFile");
+    if(othRow) othRow.addEventListener("click", function(){ if(othFile) othFile.click(); });
+    if(othFile) othFile.addEventListener("change", function(){
+      var f = othFile.files && othFile.files[0];
+      if(!f){ othFile.value = ""; return; }
+      var fr = new FileReader();
+      fr.onload = function(){
+        var d = null;
+        try{ d = JSON.parse(String(fr.result || "")); }catch(e){}
+        if(!d || typeof d !== "object"){
+          vpToast("文件解析失败，请选择正确的 JSON 文件"); othFile.value = ""; return;
+        }
+        if(d.appName === "ChatApp" || (Array.isArray(d.messages) && Array.isArray(d.customReplies))){
+          try{ xuImportChatApp(d); }
+          catch(e2){ vpToast("导入失败：" + ((e2 && e2.message) || e2)); }
+        } else if(d.localStorage || d.data){
+          vpToast("这是叙时全量备份，请用上方「数据全量导入」恢复；其它资源导入只用于 Milk/ChatApp 追加");
+        } else {
+          vpToast("未识别到可导入的聊天数据（messages/customReplies 或表情包字段）");
+        }
+        othFile.value = "";
+      };
+      fr.readAsText(f);
+    });
+    // v1.18：现有数据全数清空——字卡上锁时保留字卡配置
+    var clearRow = document.getElementById("dmClearAll");
+    if(clearRow) clearRow.addEventListener("click", function(){
+      if(!confirm("将清空当前叙时的全部数据：聊天记录、信件、收藏、表情包、相册、设置、转账记录等，且不可恢复！" + (typeof zkLocked === "function" && zkLocked() ? "（字卡已上锁，将保留字卡配置）" : "（字卡也会被清空）") + "\n确定继续吗？")) return;
+      var keptZk = null, keptLock = null;
+      try{ if(typeof zkLocked === "function" && zkLocked()){ keptZk = localStorage.getItem("glass_chat_zk_folders_v2"); keptLock = localStorage.getItem("xushi_zk_lock_v1"); } }catch(e){}
+      try{ Object.keys(localStorage).forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
+      if(keptZk !== null){
+        try{ localStorage.setItem("glass_chat_zk_folders_v2", keptZk); }catch(e){}
+        try{ localStorage.setItem("xushi_zk_lock_v1", keptLock || "1"); }catch(e){}
+      }
+      // 清空 IndexedDB 全部对象仓库，避免旧数据在启动恢复时回填
+      if(typeof xuListDbNames === "function" && typeof xuOpenDbForBackup === "function" && typeof xuClearStore === "function"){
+        xuListDbNames().then(function(names){
+          return Promise.all((names || []).map(function(name){
+            return xuOpenDbForBackup(name).then(function(db){
+              var jobs = Array.prototype.slice.call(db.objectStoreNames).map(function(sn){ return xuClearStore(db, sn); });
+              return Promise.all(jobs).then(function(){ db.close(); });
+            });
+          }));
+        }).then(function(){
+          if(keptZk !== null && typeof zkSave === "function"){
+            try{ var _zkp = JSON.parse(keptZk); if(Array.isArray(_zkp)) zkSave(_zkp); }catch(e){}
+          }
+          vpToast("已清空全部数据" + (keptZk !== null ? "（字卡已保留）" : "") + "，正在重新加载");
+          setTimeout(function(){ location.reload(); }, 600);
+        }).catch(function(){ location.reload(); });
+      } else {
+        vpToast("已清空全部数据，正在重新加载");
+        setTimeout(function(){ location.reload(); }, 600);
+      }
     });
     syncUI();
     renderDynMail();
@@ -8181,7 +8483,8 @@ var letterMask=document.createElement('div');letterMask.className='xu-modal-mask
           var dd=mbLoad(), sentId=del.dataset.delLetter;
           xuMarkReplyDeleted(sentId);
           dd.sent=(dd.sent||[]).filter(function(x){return String(x.id)!==String(sentId)});
-          dd.inbox=(dd.inbox||[]).filter(function(x){return String(x.id)!==('reply_'+sentId)});
+          // v1.18：删除寄出的信不影响星标——已收藏(starred)的回信保留
+          dd.inbox=(dd.inbox||[]).filter(function(x){return String(x.id)!==('reply_'+sentId) || x.starred===true});
           mbSave(dd); renderMailbox(); page.remove(); vpToast("已删除寄出的信");
           return;
         }
@@ -8234,9 +8537,11 @@ var letterMask=document.createElement('div');letterMask.className='xu-modal-mask
         xuMarkReplyDeleted(mailId);
         if(mode==='sent'){
           data.sent=(data.sent||[]).filter(function(x){return String(x.id)!==String(mailId)});
-          data.inbox=(data.inbox||[]).filter(function(x){return String(x.id)!==('reply_'+mailId)});
+          // v1.18：寄出箱删除不影响星标——已收藏(starred)的回信保留
+          data.inbox=(data.inbox||[]).filter(function(x){return String(x.id)!==('reply_'+mailId) || x.starred===true});
         }else{
-          data.inbox=data.inbox.filter(function(x){return String(x.id)!==String(mailId)});
+          // v1.18：删除来信不影响星标——已收藏的来信保留
+          data.inbox=data.inbox.filter(function(x){return String(x.id)!==String(mailId) || x.starred===true});
         }
         mbSave(data);
         if(layer.parentNode)layer.remove();
@@ -8326,19 +8631,72 @@ var letterMask=document.createElement('div');letterMask.className='xu-modal-mask
     if(setting){setting.addEventListener('click',function(){var st=document.getElementById('xuPetStatus');if(st)st.textContent='后续开放';vpToast('桌宠功能后续开放');});}
   })();
 
-  // v11.12：版本状态弹窗
+  // v1.18：版本状态弹窗——启动自动检查，发现新版本直接弹窗可升级；检查更新直接下载安装或提示已是最新
   (function(){
     var modal=document.getElementById('xuVersionModal'),mask=modal;
     var verLabel=document.getElementById('xuVerLabel'),verCurrent=document.getElementById('xuVerCurrent'),verPkg=document.getElementById('xuVerPkg');
-    var checkBtn=document.getElementById('xuCheckUpdateBtn'),closeBtn=document.getElementById('xuCloseVerModal');
+    var verState=document.getElementById('xuVerState');
+    var checkBtn=document.getElementById('xuCheckUpdateBtn'),closeBtn=document.getElementById('xuCloseVerModal'),updBtn=document.getElementById('xuUpdateNowBtn');
     function openVerModal(){if(mask){mask.style.display='flex';}}
     function closeVerModal(){if(mask){mask.style.display='none';}}
-    // 从Java层获取版本信息
-    try{var vi=window.XuNative&&window.XuNative.getVersionInfo?JSON.parse(window.XuNative.getVersionInfo()):null;if(vi){verLabel.textContent=(vi.type||'测试版')+' '+vi.version;verCurrent.textContent=vi.version;verPkg.textContent=vi.packageName||'com.xushi.app';}}catch(e){}
+    var _vi=null;
+    try{_vi=window.XuNative&&window.XuNative.getVersionInfo?JSON.parse(window.XuNative.getVersionInfo()):null;}catch(e){}
+    var _curCode=_vi?Number(_vi.versionCode||0):0, _curVer=(_vi&&_vi.version)||"", _pkg=(_vi&&_vi.packageName)||'com.xushi.app';
+    if(_vi){verLabel.textContent=(_vi.type||'测试版')+' '+_vi.version;verCurrent.textContent=_vi.version;verPkg.textContent=_pkg;}
+    var _setState=function(t){ if(verState) verState.textContent=t||""; };
+    var _showUpdBtn=function(show){ if(updBtn) updBtn.style.display=show?'':'none'; };
+    var _doDownload=function(){
+      _showUpdBtn(false);
+      if(window.XuNative&&window.XuNative.checkAndDownloadUpdate){ _setState("正在下载并安装新版本，请稍候…"); window.XuNative.checkAndDownloadUpdate(); }
+      else { _setState("更新功能未就绪"); vpToast('更新功能未就绪'); }
+    };
     var vs=document.getElementById('xuVersionStatus');
     if(vs){vs.addEventListener('click',openVerModal);}
     if(closeBtn){closeBtn.addEventListener('click',closeVerModal);}
-    if(checkBtn){checkBtn.addEventListener('click',function(){checkBtn.textContent='检查中…';checkBtn.disabled=true;try{if(window.XuNative&&window.XuNative.checkAndDownloadUpdate)window.XuNative.checkAndDownloadUpdate();else vpToast('更新功能未就绪');}catch(e){vpToast('检查更新失败');}checkBtn.textContent='检查更新';checkBtn.disabled=false;});}
+    if(updBtn){updBtn.addEventListener('click',_doDownload);}
+    if(checkBtn){checkBtn.addEventListener('click',function(){
+      checkBtn.textContent='检查中…';checkBtn.disabled=true;_showUpdBtn(false);
+      var _resetBtn = function(){ checkBtn.textContent='检查更新'; checkBtn.disabled=false; };
+      try{
+        fetch("https://71931.github.io/xushi/version.json?_t=" + Date.now(), { cache: "no-store" })
+          .then(function(r){ if(!r.ok) throw new Error("network"); return r.json(); })
+          .then(function(v){
+            var _srvCode = Number(v.versionCode || 0);
+            if(_srvCode > _curCode){
+              _setState("发现新版本 " + (v.version || "") + "，正在下载并安装…");
+              _doDownload();
+            } else {
+              _setState("当前已是最新版" + (_curVer ? " " + _curVer : ""));
+              vpToast("当前已是最新版" + (_curVer ? " " + _curVer : ""));
+            }
+            _resetBtn();
+          })
+          .catch(function(){ _setState("检查更新失败，请检查网络后重试"); _doDownload(); _resetBtn(); });
+      }catch(e){ _setState('检查更新失败'); _resetBtn(); }
+    });}
+    // 启动自动检查：旧版本一进入 App 就弹窗提示有新版本，点「立即更新」直接升级，不再等关闭后才弹
+    (function autoCheck(){
+      try{
+        fetch("https://71931.github.io/xushi/version.json?_t=" + Date.now(), { cache: "no-store" })
+          .then(function(r){ if(!r.ok) throw new Error("network"); return r.json(); })
+          .then(function(v){
+            var _srvCode = Number(v.versionCode || 0);
+            if(_srvCode > _curCode){
+              var _promptKey = "xushi_update_prompt_v1", _done = false;
+              try{ _done = localStorage.getItem(_promptKey) === String(v.version || ""); }catch(e){}
+              _setState("发现新版本 " + (v.version || "") + "，点击下方「立即更新」即可升级，数据不会丢失");
+              _showUpdBtn(true);
+              if(!_done){
+                try{ localStorage.setItem(_promptKey, String(v.version || "")); }catch(e){}
+                openVerModal();
+              }
+            } else {
+              _setState("当前已是最新版" + (_curVer ? " " + _curVer : ""));
+            }
+          })
+          .catch(function(){});
+      }catch(e){}
+    })();
   })();
 
   // 用同一套矢量绘制逻辑生成 PNG，供 iOS「添加到主屏幕」与 PWA Manifest 使用；favicon 用 SVG 矢量图
