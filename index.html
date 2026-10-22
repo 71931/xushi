@@ -538,10 +538,10 @@
   .zk-filter-menu button:active{background:rgba(0,0,0,.06)}
   .zk-filter-menu button.on{color:#3a7afe;font-weight:700}
   .zk-filter-menu .zk-dedupe{margin-top:4px;border-top:1px solid rgba(0,0,0,.08);border-radius:0 0 9px 9px;color:#e04f4f;font-weight:600}
-  /* v1.19：字卡库上锁——整页列表置灰不可点击修改，锁按钮与返回键除外 */
+  /* v1.20：字卡库上锁——列表与修改操作置灰不可点，筛选/搜索/查重等查看类操作仍可点 */
   .zk-lock-page .folder,.zk-lock-page .sf-item,.zk-lock-page .card-item{filter:grayscale(.9);opacity:.5;pointer-events:none}
   .zk-lock-page .f-op,.zk-lock-page .sf-del,.zk-lock-page .sf-shield,.zk-lock-page .c-del,.zk-lock-page .c-edit{pointer-events:none}
-  .zk-lock-page .zk-bar{opacity:.45;pointer-events:none}
+  .zk-lock-page .zk-bar{opacity:.55}
   .zk-lock-page .zika-add.zk-add-locked{opacity:.35;pointer-events:none}
   .zk-lock-page .zk-empty{filter:grayscale(.8);opacity:.55}
   .zk-lock-page .zika-top .zika-add.zk-locked{opacity:1;pointer-events:auto;color:#3a7afe}
@@ -625,6 +625,15 @@
   .msg-wrap.out{align-self:flex-end;align-items:flex-end}
   .msg-time{font-size:10px;color:var(--ink-3);opacity:.75;padding:0 3px;line-height:1;display:flex;align-items:center;gap:2px}
   .cw-tl{text-align:center;font-size:11px;color:var(--ink-3);opacity:.8;margin:16px 0 12px;letter-spacing:1px;flex:0 0 100%;width:100%}
+  /* v1.20：时间线按年份折叠——年份分组头，点击展开/收起该年全部消息 */
+  .cw-year{flex:0 0 100%;width:100%;display:flex;align-items:center;justify-content:center;margin:14px 0 10px;gap:8px}
+  .cw-year::before,.cw-year::after{content:"";flex:1;height:1px;background:rgba(0,0,0,.07)}
+  .cw-year button{border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink-2);
+    display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:12px;cursor:pointer}
+  .cw-year button:active{transform:scale(.95)}
+  .cw-year button .cw-y-arrow{font-size:9px;opacity:.65;transition:transform .18s}
+  .cw-year button.collapsed .cw-y-arrow{transform:rotate(-90deg)}
+  .cw-year .cw-y-cnt{font-size:10px;font-weight:600;color:var(--ink-3);opacity:.8}
   /* v69：已读显示文字版（统一颜色，无高亮）——已送达/已接收/已读；颜色由 JS 按背景深浅反色 */
   .msg-read{display:inline-flex;align-items:center;margin-left:3px;line-height:1;color:rgba(255,255,255,.88);font-size:10px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
   .msg-read.msg-read-single{opacity:.72}
@@ -2927,6 +2936,8 @@
     if(typeof cwApplyAppearance === "function") cwApplyAppearance();
   }
   var chatLoadedMore = {}; // v67：每个会话额外展开的更早消息条数（每次 +50），用于长聊天记录压缩
+  var chatYearOpen = {}; // v1.20：时间线年份折叠状态（按会话+年份），true=展开
+  var chatTimeDetail = {}; // v1.20：消息时间简版/详细切换状态（按会话+消息索引），true=显示年月日+时分
   function renderChatWin(){
     if(!curCid) return;
     var meta = metaLoad()[curCid] || metaDefault(curCid);
@@ -2962,21 +2973,39 @@
       });
       cwScroll.appendChild(olderBtn);
     }
-    var prevTs = 0; // v1.19：时间线分隔——隔天显日期、空 1h 显时间
+    var nowY = new Date().getFullYear();
+    var lastYear = 0; // v1.20：时间线按年份折叠——年份变化处插分组头，默认当年展开、往年折叠
     for(var i = showStart; i < list.length; i++){
       var m = list[i];
       var mi = i;
-      var tlTxt = "";
       var ts = Number(m.ts) || 0;
+      var tlYear = 0, tlShortTxt = "", tlFullTxt = "";
       if(ts){
-        var tlD = new Date(ts), tp = function(n){ return n < 10 ? "0" + n : "" + n; };
-        if(!prevTs || (ts - prevTs) >= 24 * 3600 * 1000){
-          var tlY = tlD.getFullYear(), tlNowY = new Date().getFullYear();
-          tlTxt = (tlY !== tlNowY ? tlY + " 年 " : "") + (tlD.getMonth() + 1) + " 月 " + tlD.getDate() + " 日";
-        } else if((ts - prevTs) >= 3600 * 1000){
-          tlTxt = tp(tlD.getHours()) + ":" + tp(tlD.getMinutes());
-        }
-        prevTs = ts;
+        var tlD = new Date(ts), tp2 = function(n){ return n < 10 ? "0" + n : "" + n; };
+        tlYear = tlD.getFullYear();
+        var md = (tlD.getMonth() + 1) + "月" + tlD.getDate() + "日";
+        tlShortTxt = (tlYear !== nowY ? tlYear + "年" : "") + md;
+        tlFullTxt = tlShortTxt + " " + tp2(tlD.getHours()) + ":" + tp2(tlD.getMinutes());
+      }
+      if(tlYear && tlYear !== lastYear){
+        var yOpenKey = curCid + "_" + tlYear;
+        var yOpen = (tlYear === nowY)
+          ? (chatYearOpen[yOpenKey] !== false)
+          : (chatYearOpen[yOpenKey] === true);
+        var yBtn = document.createElement("div");
+        yBtn.className = "cw-year";
+        yBtn.innerHTML = '<button type="button" data-tl-year="' + tlYear + '" data-open="' + (yOpen ? 1 : 0) + '">' +
+          '<span class="cw-y-arrow">' + (yOpen ? "▼" : "▶") + '</span>' + tlYear + "年" +
+          '<span class="cw-y-cnt"></span></button>';
+        yBtn.addEventListener("click", function(){
+          var b = this.querySelector("button");
+          var y = Number(b.getAttribute("data-tl-year")) || 0;
+          var k = curCid + "_" + y;
+          chatYearOpen[k] = b.getAttribute("data-open") === "0";
+          renderChatWin();
+        });
+        cwScroll.appendChild(yBtn);
+        lastYear = tlYear;
       }
       var it = document.createElement("div");
       it.className = "msg-wrap " + (m.from === "out" ? "out" : "in");
@@ -3023,12 +3052,42 @@
         else if(m.state === "received") readTag = '<span class="msg-read">已接收</span>';
         else readTag = '<span class="msg-read msg-read-single">已送达</span>';
       }
-      it.innerHTML = sel + body + '<div class="msg-time">' + (typeof tsShowGlobal === "undefined" || tsShowGlobal ? esc(m.time || "") : "") + readTag + '</div>';
-      if(tlTxt){ // v1.19：时间线分隔小字（居中灰字）
-        var tlEl = document.createElement("div");
-        tlEl.className = "cw-tl";
-        tlEl.textContent = tlTxt;
-        cwScroll.appendChild(tlEl);
+      var timeSpan = "";
+      if(typeof tsShowGlobal === "undefined" || tsShowGlobal){
+        if(tlYear){
+          var dKey = curCid + "_" + mi;
+          var showFull = !!chatTimeDetail[dKey];
+          timeSpan = '<span class="mt-txt" data-tl-detail="' + (showFull ? 1 : 0) + '" data-tl-year="' + tlYear + '" data-mi="' + mi + '" data-tl-ts="' + ts + '">' + esc(showFull ? tlFullTxt : tlShortTxt) + '</span>';
+        } else {
+          timeSpan = '<span class="mt-txt" data-tl-detail="0" data-mi="' + mi + '" data-tl-ts="' + ts + '">' + esc(m.time || "") + '</span>';
+        }
+      }
+      it.innerHTML = sel + body + '<div class="msg-time">' + timeSpan + readTag + '</div>';
+      // v1.20：点击消息时间，在「月日 / 月日 时分」之间切换
+      var mtSpan = it.querySelector(".mt-txt");
+      if(mtSpan && tlYear){
+        mtSpan.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          var sp = this;
+          var y = Number(sp.getAttribute("data-tl-year")) || 0;
+          var mm = Number(sp.getAttribute("data-mi")) || 0;
+          var tt = Number(sp.getAttribute("data-tl-ts")) || 0;
+          if(!y || !tt) return;
+          var dd = new Date(tt), hh2 = dd.getHours(), mn2 = dd.getMinutes();
+          var md2 = (dd.getMonth() + 1) + "月" + dd.getDate() + "日";
+          var shortTxt = (y !== nowY ? y + "年" : "") + md2;
+          var fullTxt = shortTxt + " " + (hh2 < 10 ? "0" : "") + hh2 + ":" + (mn2 < 10 ? "0" : "") + mn2;
+          var isFull = sp.getAttribute("data-tl-detail") === "1";
+          chatTimeDetail[curCid + "_" + mm] = !isFull;
+          sp.textContent = isFull ? shortTxt : fullTxt;
+          sp.setAttribute("data-tl-detail", isFull ? "0" : "1");
+        });
+      }
+      // v1.20：年份折叠——折叠年份的消息隐藏
+      if(tlYear){
+        var yk = curCid + "_" + tlYear;
+        var yOpen2 = (tlYear === nowY) ? (chatYearOpen[yk] !== false) : (chatYearOpen[yk] === true);
+        if(!yOpen2) it.style.display = "none";
       }
       if(mselActive && mselSet[mi]) it.classList.add("sel-on", "sel-ring");
       cwScroll.appendChild(it);
@@ -6831,31 +6890,35 @@
     renderCards();
 });
   function dedupeCards(){
-    var fs = zkLoad();
-    if(!fs || !fs.length){ vpToast("字卡库为空"); return; }
-    // v1.19：全局查重——遍历整个字卡库（全部文件夹/小文件夹），同一句只保留第一处
-    var seen = {};
-    var removed = 0;
-    var total = 0;
-    fs.forEach(function(f){
-      (f.subs || []).forEach(function(s){
-        var cards = s.cards || [];
-        var kept = [];
-        cards.forEach(function(c){
-          total++;
-          var key = String(c.text || "").trim();
-          if(seen[key]){ removed++; return; }
-          seen[key] = true;
-          kept.push(c);
+    // v1.20：全程兜底 try/catch + 强反馈，避免异常导致「点击无反应」
+    try{
+      var fs = zkLoad();
+      if(!fs || !fs.length){ vpToast("字卡库为空"); return; }
+      var seen = {};
+      var removed = 0;
+      var total = 0;
+      fs.forEach(function(f){
+        (f.subs || []).forEach(function(s){
+          var cards = s.cards || [];
+          var kept = [];
+          cards.forEach(function(c){
+            total++;
+            var key = String(c.text || "").trim();
+            if(seen[key]){ removed++; return; }
+            seen[key] = true;
+            kept.push(c);
+          });
+          s.cards = kept;
         });
-        s.cards = kept;
       });
-    });
-    zkSave(fs);
-    if(!removed){ vpToast("字卡库没有重复字卡（共检查 " + total + " 张）"); return; }
-    renderCards();
-    if(zkInner.classList.contains("show")) renderSubs();
-    vpToast("全局查重完成：共检查 " + total + " 张，删除 " + removed + " 张重复字卡，剩余 " + (total - removed) + " 张");
+      zkSave(fs);
+      if(!removed){ vpToast("字卡库没有重复字卡（共检查 " + total + " 张）"); return; }
+      if(typeof renderCards === "function") renderCards();
+      if(zkInner && zkInner.classList.contains("show") && typeof renderSubs === "function") renderSubs();
+      vpToast("全局查重完成：共检查 " + total + " 张，删除 " + removed + " 张重复字卡，剩余 " + (total - removed) + " 张");
+    }catch(e){
+      vpToast("查重失败：" + ((e && e.message) ? e.message : "请重试"));
+    }
   }
   function updateFilterLabel(){
     zkFilterMenu.querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", b.dataset.f === cardFilter); });
