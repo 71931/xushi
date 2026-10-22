@@ -481,6 +481,7 @@
   .zk-btn:active{transform:scale(.96)}
   .zk-btn.cancel{background:#eceef1;color:var(--ink-2)}
   .zk-btn.confirm{background:linear-gradient(145deg,#2a2e34,#0e1013);color:#fff}
+  .zk-btn.danger{background:#fdecec;color:#d33} /* v1.19：字卡编辑弹窗删除按钮 */
   /* 文件夹行操作按钮 */
   .f-ops{flex:0 0 auto;display:flex;gap:4px}
   .f-op{
@@ -508,6 +509,8 @@
   .card-item .c-sub{font-size:11px;color:var(--ink-3);margin-top:3px}
   .card-item .c-del{width:28px;height:28px;border:none;background:transparent;color:var(--ink-3);cursor:pointer;display:flex;align-items:center;justify-content:center}
   .card-item .c-del svg{width:15px;height:15px}
+  .card-item .c-edit{width:28px;height:28px;border:none;background:transparent;color:var(--ink-3);cursor:pointer;display:flex;align-items:center;justify-content:center} /* v1.19：字卡库可编辑 */
+  .card-item .c-edit svg{width:15px;height:15px}
   /* 中层：小文件夹 */
   .sf-item{display:flex;align-items:center;gap:10px;padding:13px 14px;margin-bottom:10px;font-size:13px;cursor:pointer}
   .sf-item .sf-color{flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.75);box-shadow:0 0 0 1px rgba(0,0,0,.08),0 2px 5px rgba(0,0,0,.18)}
@@ -535,6 +538,13 @@
   .zk-filter-menu button:active{background:rgba(0,0,0,.06)}
   .zk-filter-menu button.on{color:#3a7afe;font-weight:700}
   .zk-filter-menu .zk-dedupe{margin-top:4px;border-top:1px solid rgba(0,0,0,.08);border-radius:0 0 9px 9px;color:#e04f4f;font-weight:600}
+  /* v1.19：字卡库上锁——整页列表置灰不可点击修改，锁按钮与返回键除外 */
+  .zk-lock-page .folder,.zk-lock-page .sf-item,.zk-lock-page .card-item{filter:grayscale(.9);opacity:.5;pointer-events:none}
+  .zk-lock-page .f-op,.zk-lock-page .sf-del,.zk-lock-page .sf-shield,.zk-lock-page .c-del,.zk-lock-page .c-edit{pointer-events:none}
+  .zk-lock-page .zk-bar{opacity:.45;pointer-events:none}
+  .zk-lock-page .zika-add.zk-add-locked{opacity:.35;pointer-events:none}
+  .zk-lock-page .zk-empty{filter:grayscale(.8);opacity:.55}
+  .zk-lock-page .zika-top .zika-add.zk-locked{opacity:1;pointer-events:auto;color:#3a7afe}
   /* 色环弹窗 */
   .zk-wheel-wrap{position:relative;width:170px;height:170px;margin:12px auto 8px}
   .zk-wheel-wrap canvas{width:170px;height:170px;display:block}
@@ -614,6 +624,7 @@
   .msg-wrap.in{align-self:flex-start;align-items:flex-start}
   .msg-wrap.out{align-self:flex-end;align-items:flex-end}
   .msg-time{font-size:10px;color:var(--ink-3);opacity:.75;padding:0 3px;line-height:1;display:flex;align-items:center;gap:2px}
+  .cw-tl{text-align:center;font-size:11px;color:var(--ink-3);opacity:.8;margin:16px 0 12px;letter-spacing:1px;flex:0 0 100%;width:100%}
   /* v69：已读显示文字版（统一颜色，无高亮）——已送达/已接收/已读；颜色由 JS 按背景深浅反色 */
   .msg-read{display:inline-flex;align-items:center;margin-left:3px;line-height:1;color:rgba(255,255,255,.88);font-size:10px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
   .msg-read.msg-read-single{opacity:.72}
@@ -2179,6 +2190,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="zika-title">字卡库</div>
+      <button class="zika-add" id="zikaLock" aria-label="字卡库上锁" title="字卡库上锁：上锁后整个列表置灰不可修改" style="color:var(--ink-2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>
+      </button>
       <button class="zika-add" id="zikaAdd" aria-label="新建文件夹">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -2336,6 +2350,7 @@
       <div class="zk-sub">输入字卡内容，保存后显示在文件夹内</div>
       <input type="text" class="zk-input" id="zkCardInput" placeholder="例如：人生是旷野" maxlength="30">
       <div class="zk-btns">
+        <button class="zk-btn danger" id="zkCardDelete" style="display:none">删除</button>
         <button class="zk-btn cancel" id="zkCardCancel">取消</button>
         <button class="zk-btn confirm" id="zkCardConfirm">添加</button>
       </div>
@@ -2947,9 +2962,22 @@
       });
       cwScroll.appendChild(olderBtn);
     }
+    var prevTs = 0; // v1.19：时间线分隔——隔天显日期、空 1h 显时间
     for(var i = showStart; i < list.length; i++){
       var m = list[i];
       var mi = i;
+      var tlTxt = "";
+      var ts = Number(m.ts) || 0;
+      if(ts){
+        var tlD = new Date(ts), tp = function(n){ return n < 10 ? "0" + n : "" + n; };
+        if(!prevTs || (ts - prevTs) >= 24 * 3600 * 1000){
+          var tlY = tlD.getFullYear(), tlNowY = new Date().getFullYear();
+          tlTxt = (tlY !== tlNowY ? tlY + " 年 " : "") + (tlD.getMonth() + 1) + " 月 " + tlD.getDate() + " 日";
+        } else if((ts - prevTs) >= 3600 * 1000){
+          tlTxt = tp(tlD.getHours()) + ":" + tp(tlD.getMinutes());
+        }
+        prevTs = ts;
+      }
       var it = document.createElement("div");
       it.className = "msg-wrap " + (m.from === "out" ? "out" : "in");
       it.setAttribute("data-mi", mi);
@@ -2996,6 +3024,12 @@
         else readTag = '<span class="msg-read msg-read-single">已送达</span>';
       }
       it.innerHTML = sel + body + '<div class="msg-time">' + (typeof tsShowGlobal === "undefined" || tsShowGlobal ? esc(m.time || "") : "") + readTag + '</div>';
+      if(tlTxt){ // v1.19：时间线分隔小字（居中灰字）
+        var tlEl = document.createElement("div");
+        tlEl.className = "cw-tl";
+        tlEl.textContent = tlTxt;
+        cwScroll.appendChild(tlEl);
+      }
       if(mselActive && mselSet[mi]) it.classList.add("sel-on", "sel-ring");
       cwScroll.appendChild(it);
     }
@@ -4179,6 +4213,7 @@
   var cwBar = document.querySelector(".cw-bar");
   var cwBatchInline = document.getElementById("cwBatchInline"); // v72：批量输入复用主输入框位置
   var batchSending = false;
+  var batchSendGuard = null; // v1.19：批量发送看门狗——防发送链中断导致永久卡死
   // v101：批量发送/补回间隔按预设思考时长随机（minThink~maxThink 秒），与自动回复一致
   function batchThinkDelay(){
     var liveCfg = (curCid ? appFor(curCid).chat : null) || chatCfg || {};
@@ -4214,15 +4249,17 @@
     function step(){
       if(i >= q.length) return;
       var cid = q[i]; i++;
-      var txt = zkPickText(cid);
-      if(txt){
-        var m = { from: "in", text: txt, time: cwTimeNow() };
-        var vm = maybeVoiceReply(txt); // v43：批量补回同样受语音概率控制
-        if(vm) m = vm;
-        var qq = quoteIfOn(); // v42：引用回复（批量补回也带上）
-        if(qq.quote) m.quote = qq.quote;
-        pushMsg(m);
-      }
+      try{
+        var txt = zkPickText(cid);
+        if(txt){
+          var m = { from: "in", text: txt, time: cwTimeNow() };
+          var vm = maybeVoiceReply(txt); // v43：批量补回同样受语音概率控制
+          if(vm) m = vm;
+          var qq = quoteIfOn(); // v42：引用回复（批量补回也带上）
+          if(qq.quote) m.quote = qq.quote;
+          try{ pushMsg(m); }catch(e){}
+        }
+      }catch(e){}
       setTimeout(step, batchThinkDelay()); // v101：补回按预设思考时长间隔
     }
     setTimeout(step, batchThinkDelay()); // v101：首条也按预设思考时长
@@ -4240,28 +4277,37 @@
   function batchSendLines(lines){
     if(!lines.length || batchSending) return;
     batchSending = true;
+    // v1.19：看门狗——无论什么原因中断，按条数给足余量后强制复位，避免"再点发送没反应"
+    clearTimeout(batchSendGuard);
+    batchSendGuard = setTimeout(function(){ batchSending = false; }, Math.max(30000, lines.length * 30000) + 15000);
     var i = 0;
     function step(){
-      if(i >= lines.length){
-        batchSending = false;
-        if(cwBatchInline){ cwBatchInline.value = ""; cwBatchInline.style.height = "36px"; }
-        vpToast("已发送 " + lines.length + " 条；再点我的头像退出，对方统一回复");
-        return;
+      try{
+        if(i >= lines.length){
+          if(cwBatchInline){ cwBatchInline.value = ""; cwBatchInline.style.height = "36px"; }
+          vpToast("已发送 " + lines.length + " 条；再点我的头像退出，对方统一回复");
+          return;
+        }
+        var line = lines[i];
+        i++;
+        var msg = { from: "out", text: line, time: cwTimeNow() };
+        if(pendingQuote){ msg.quote = { text: pendingQuote.text }; }
+        try{ pushMsg(msg); }catch(e){} // v1.19：单条发送异常不中断整批
+        clearPendingQuote();
+      }catch(e){}
+      finally{
+        if(i >= lines.length){
+          clearTimeout(batchSendGuard);
+          batchSending = false;
+        } else {
+          setTimeout(step, batchThinkDelay()); // v101：逐条按预设思考时长间隔发出
+        }
       }
-      var line = lines[i];
-      i++;
-      var msg = { from: "out", text: line, time: cwTimeNow() };
-      if(pendingQuote){ msg.quote = { text: pendingQuote.text }; }
-      pushMsg(msg); // v41：批量中 scheduleAutoReply 只入队，不发
-      clearPendingQuote();
-      setTimeout(step, batchThinkDelay()); // v101：逐条按预设思考时长间隔发出
     }
     step();
   }
   document.getElementById("cwBatchOk").addEventListener("click", function(){
-    var lines = [];
-    cwBatchArea.value.split("\n").forEach(function(s){ s = s.trim(); if(s) lines.push(s); });
-    batchSendLines(lines);
+    sendOrBatch(); // v1.19：批量按钮统一走 sendOrBatch（读主输入框 cwBatchInline）
   });
   cwBatchArea.addEventListener("keydown", function(e){
     if(e.key === "Enter" && !e.shiftKey){
@@ -4274,10 +4320,10 @@
   // v72：发送统一入口——批量模式下按行拆条逐条发出，普通模式走原发送逻辑
   function sendOrBatch(){
     if(!batchActive){ cwSendMsg(); return; }
-    if(batchSending) return;
+    if(batchSending){ vpToast("正在逐条发送中，请稍候…"); return; }
     var lines = [];
     (cwBatchInline.value || "").split("\n").forEach(function(s){ s = s.trim(); if(s) lines.push(s); });
-    if(!lines.length) return;
+    if(!lines.length){ vpToast("请输入要批量发送的内容（一行一条）"); return; } // v1.19：空输入不再静默无反应
     cwBatchInline.value = "";
     cwBatchInline.style.height = "36px";
     batchSendLines(lines);
@@ -5216,6 +5262,7 @@
       return;
     }
     vpToast("已保存到相册");
+    try{ if(window.XuNative && typeof XuNative.saveShotToGallery === "function") XuNative.saveShotToGallery(name, url); }catch(e){} // 同时存入系统相册（Pictures/叙时）
     if(typeof mselExit === "function") mselExit(); else shotExit();
   }
   // v77：截图不再提供时间戳/已读开关，绘制时固定关闭这两项
@@ -6303,27 +6350,43 @@
   function zkSetLock(v){
     try{ localStorage.setItem(ZK_LOCK_KEY, v ? "1" : "0"); }catch(e){}
     zkRenderLockBtn();
+    zkApplyLockUI();
     try{ if(typeof xuScheduleSnap === "function") xuScheduleSnap(); }catch(e){}
   }
+  // v1.19：锁按钮统一渲染（聊天顶栏 cwZkLock + 字卡库顶栏 zikaLock），并联动字卡库整体置灰
   function zkRenderLockBtn(){
-    var b = document.getElementById("cwZkLock");
-    if(!b) return;
     var on = zkLocked();
-    b.classList.toggle("zk-locked", on);
-    b.setAttribute("aria-label", on ? "字卡已上锁" : "字卡未上锁");
-    b.setAttribute("title", on ? "字卡已上锁：导入/恢复/清空不会改动字卡" : "字卡未上锁：点击锁定配置");
-    b.innerHTML = on
-      ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="#fff" stroke="none"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>';
+    var btns = [document.getElementById("cwZkLock"), document.getElementById("zikaLock")];
+    btns.forEach(function(b){
+      if(!b) return;
+      b.classList.toggle("zk-locked", on);
+      b.setAttribute("aria-label", on ? "字卡库已上锁" : "字卡库未上锁");
+      b.setAttribute("title", on ? "字卡库已上锁：整个列表置灰不可修改，点此解锁" : "字卡库未上锁：点击上锁，整个列表将置灰不可修改");
+      b.innerHTML = on
+        ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="#fff" stroke="none"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>';
+    });
+  }
+  // v1.19：上锁后字卡库整页（文件夹/小文件夹/字卡列表）置灰不可点击修改，锁按钮本身可点解锁
+  function zkApplyLockUI(){
+    var on = zkLocked();
+    var pages = [document.getElementById("zikaPage"), document.getElementById("zkInner"), document.getElementById("zkCardPage")];
+    pages.forEach(function(p){ if(p) p.classList.toggle("zk-lock-page", on); });
+    var adds = [document.getElementById("zikaAdd"), document.getElementById("zkSubAdd"), document.getElementById("zkCardAdd")];
+    adds.forEach(function(a){ if(a) a.classList.toggle("zk-add-locked", on); });
+  }
+  function zkToggleLock(){
+    var next = !zkLocked();
+    zkSetLock(next);
+    vpToast(next ? "字卡库已上锁：整个列表置灰，不可修改" : "字卡库已解锁");
   }
   (function(){
-    var b = document.getElementById("cwZkLock");
-    if(b) b.addEventListener("click", function(){
-      var next = !zkLocked();
-      zkSetLock(next);
-      vpToast(next ? "字卡配置已上锁：导入/恢复/清空不会改动字卡" : "字卡配置已解锁");
-    });
+    var a = document.getElementById("cwZkLock");
+    if(a) a.addEventListener("click", zkToggleLock);
+    var b = document.getElementById("zikaLock");
+    if(b) b.addEventListener("click", zkToggleLock);
     zkRenderLockBtn();
+    zkApplyLockUI();
   })();
   function zkRefreshUI(){
     if(typeof renderFolders === "function") renderFolders();
@@ -6686,7 +6749,8 @@
     if(!f || !f.subs || curSubIdx < 0 || !f.subs[curSubIdx]) return;
     var cards = f.subs[curSubIdx].cards || [];
     var q = (cardQuery || "").trim().toLowerCase();
-    cardListCache = cards.filter(function(c){
+    cardListCache = cards.map(function(c, ci){ return { c: c, ci: ci }; }).filter(function(it){
+      var c = it.c;
       if(q && (c.text || "").toLowerCase().indexOf(q) < 0) return false;
       if(cardFilter === "short" && c.text.length > 12) return false;
       if(cardFilter === "long" && c.text.length <= 12) return false;
@@ -6718,14 +6782,19 @@
   function appendCardBatch(){
     var to = Math.min(cardShown + cardStep, cardListCache.length);
     for(; cardShown < to; cardShown++){
-      (function(c){
-        var it = document.createElement("div");
-        it.className = "glass card-item";
-        it.innerHTML =
+      (function(it){
+        var c = it.c;
+        var item = document.createElement("div");
+        item.className = "glass card-item";
+        item.innerHTML =
           '<span class="c-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5M8 17h3"/></svg></span>' +
           '<span class="c-main"><div class="c-tx">' + esc(c.text) + '</div><div class="c-sub">字卡</div></span>' +
+          '<button class="c-edit" aria-label="编辑字卡"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.12 2.12 0 0 0-3-3L5 17v3"/><path d="M13.5 6.5l3 3"/></svg></button>' +
           '<button class="c-del" aria-label="删除字卡"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>';
-        it.querySelector(".c-del").addEventListener("click", function(){
+        item.querySelector(".c-edit").addEventListener("click", function(){ // v1.19：字卡库可直接编辑
+          openCardEdit({ fi: curFolderIdx, si: curSubIdx, ci: it.ci });
+        });
+        item.querySelector(".c-del").addEventListener("click", function(){
           var fs2 = zkLoad();
           var f2 = fs2[curFolderIdx];
           if(!f2 || !f2.subs || curSubIdx < 0 || !f2.subs[curSubIdx]) return;
@@ -6733,7 +6802,7 @@
           var i2 = arr.indexOf(c);
           if(i2 >= 0){ arr.splice(i2, 1); zkSave(fs2); renderCards(); vpToast("字卡已删除"); }
         });
-        zkCardScroll.appendChild(it);
+        zkCardScroll.appendChild(item);
       })(cardListCache[cardShown]);
     }
   }
@@ -6763,24 +6832,30 @@
 });
   function dedupeCards(){
     var fs = zkLoad();
-    var f = fs[curFolderIdx];
-    if(!f || !f.subs || curSubIdx < 0 || !f.subs[curSubIdx]) return;
-    var cards = f.subs[curSubIdx].cards || [];
+    if(!fs || !fs.length){ vpToast("字卡库为空"); return; }
+    // v1.19：全局查重——遍历整个字卡库（全部文件夹/小文件夹），同一句只保留第一处
     var seen = {};
-    var kept = [];
     var removed = 0;
-    cards.forEach(function(c){
-      var key = String(c.text || "").trim();
-      if(seen[key]){ removed++; return; }
-      seen[key] = true;
-      kept.push(c);
+    var total = 0;
+    fs.forEach(function(f){
+      (f.subs || []).forEach(function(s){
+        var cards = s.cards || [];
+        var kept = [];
+        cards.forEach(function(c){
+          total++;
+          var key = String(c.text || "").trim();
+          if(seen[key]){ removed++; return; }
+          seen[key] = true;
+          kept.push(c);
+        });
+        s.cards = kept;
+      });
     });
-    if(!removed){ vpToast("没有重复字卡"); return; }
-    f.subs[curSubIdx].cards = kept;
     zkSave(fs);
+    if(!removed){ vpToast("字卡库没有重复字卡（共检查 " + total + " 张）"); return; }
     renderCards();
     if(zkInner.classList.contains("show")) renderSubs();
-    vpToast("已删除 " + removed + " 张重复字卡");
+    vpToast("全局查重完成：共检查 " + total + " 张，删除 " + removed + " 张重复字卡，剩余 " + (total - removed) + " 张");
   }
   function updateFilterLabel(){
     zkFilterMenu.querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", b.dataset.f === cardFilter); });
@@ -6795,6 +6870,7 @@
   var zkCardInput = document.getElementById("zkCardInput");
   var zkCardCancel = document.getElementById("zkCardCancel");
   var zkCardConfirm = document.getElementById("zkCardConfirm");
+  var zkCardDelete = document.getElementById("zkCardDelete");
   // 添加方式菜单：手动添加 / 批量导入 / 文件上传
   var zkAddMenu = document.getElementById("zkAddMenu");
   var zkFileInput = document.getElementById("zkFileInput");
@@ -6924,6 +7000,23 @@
   });
   zkCardCancel.addEventListener("click", function(){ zkCardModal.classList.remove("show"); clearZkEdit(); });
   zkCardModal.addEventListener("click", function(e){ if(e.target === zkCardModal){ zkCardModal.classList.remove("show"); clearZkEdit(); } });
+  // v1.19：编辑弹窗内删除当前字卡（聊天跳转进来的编辑弹窗同样可删）
+  zkCardDelete.addEventListener("click", function(){
+    var t = zkEditTarget;
+    if(!t) return;
+    var fs = zkLoad();
+    var f = fs[t.fi];
+    if(f && f.subs && f.subs[t.si] && f.subs[t.si].cards && f.subs[t.si].cards[t.ci]){
+      f.subs[t.si].cards.splice(t.ci, 1);
+      zkSave(fs);
+      if(curFolderIdx === t.fi && curSubIdx === t.si) renderCards();
+      vpToast("字卡已删除");
+    } else {
+      vpToast("该字卡已不存在");
+    }
+    zkCardModal.classList.remove("show");
+    clearZkEdit();
+  });
   // v39：编辑模式（聊天消息 → 跳转到字卡位置修改）
   var zkEditTarget = null;
   var zkCardModalTitle = document.getElementById("zkCardModalTitle");
@@ -6936,6 +7029,7 @@
     zkCardModalTitle.textContent = "编辑字卡";
     zkCardInput.value = txt;
     zkCardConfirm.textContent = "保存";
+    zkCardDelete.style.display = "inline-block"; // v1.19：编辑态可删除（聊天跳转进来同样可删）
     zkCardModal.classList.add("show");
     setTimeout(function(){ try{ zkCardInput.focus(); zkCardInput.select(); }catch(e){} }, 80);
   }
@@ -6944,6 +7038,7 @@
     zkCardModalTitle.textContent = "添加字卡";
     zkCardInput.value = "";
     zkCardConfirm.textContent = "添加";
+    zkCardDelete.style.display = "none";
   }
   zkCardConfirm.addEventListener("click", function(){
     var text = zkCardInput.value.trim();
@@ -7252,7 +7347,7 @@
       try{
         if(window.XuNative && typeof XuNative.syncActive === "function"){
           var _now = Date.now();
-          var _msgInt = cfg.msgMin < 0 ? (cfg.msgNext > 0 ? cfg.msgNext : 15 * 60000) : cfg.msgMin * 60000;
+          var _msgInt = (cfg.msgMin !== 0 && cfg.msgNext > 0) ? cfg.msgNext : (cfg.msgMin === 0 ? 0 : cfg.msgMin * 60000); // v1.19：正数分钟也走随机 msgNext
           var _mailInt = cfg.mailMin < 0 ? (cfg.mailNext > 0 ? cfg.mailNext : 1440 * 60000) : cfg.mailMin * 60000;
           var _nextMsgAt = (cfg.msgMin !== 0 && cfg.lastMsg) ? (_now + Math.max(1000, _msgInt - (_now - Number(cfg.lastMsg)))) : 0;
           var _nextMailAt = (cfg.mailMin !== 0 && cfg.lastMail) ? (_now + Math.max(1000, _mailInt - (_now - Number(cfg.lastMail)))) : 0;
@@ -7336,7 +7431,13 @@
       }catch(e){}
     }
     window.xuSystemNotify = notify;
-    function pushMail(){
+    // v1.19：主动来信随机间隔——在设定分钟基础上把下一次间隔随机化（5~30 分钟区间）
+  function xushiActiveInt(cfg){
+    var base = Math.max(Number(cfg.msgMin) || 5, 1);
+    var lo = Math.max(base, 5), hi = Math.max(30, base + 15);
+    return (lo + Math.random() * (hi - lo)) * 60000;
+  }
+  function pushMail(){
       var cid = pickCid();
       var meta = (metaLoad()[cid] || {});
       var who = meta.note || meta.name || "TA";
@@ -7352,7 +7453,7 @@
       // v93：向原生层上报 JS 心跳，用于区分"APP关闭（需闹钟兜底）"与"进程存活（静默重排）"
       try{ if(window.XuNative && typeof XuNative.heartbeat === "function") XuNative.heartbeat(); }catch(e){}
       var cfg = actLoad(), now = Date.now(), dirty = false;
-      var msgInt = cfg.msgMin < 0 ? (cfg.msgNext > 0 ? cfg.msgNext : 15 * 60000) : cfg.msgMin * 60000;
+      var msgInt = (cfg.msgMin !== 0 && cfg.msgNext > 0) ? cfg.msgNext : (cfg.msgMin === 0 ? 0 : cfg.msgMin * 60000); // v1.19：正数分钟也走随机 msgNext
       if(cfg.msgMin !== 0){
         if(!cfg.lastMsg){ cfg.lastMsg = now; dirty = true; }
         else if(now - cfg.lastMsg >= msgInt){
@@ -7379,7 +7480,7 @@
             });
           }
           cfg.lastMsg = now;
-          if(cfg.msgMin < 0) cfg.msgNext = (5 + Math.floor(Math.random() * 56)) * 60000; // 随机 5~60 分钟
+          cfg.msgNext = xushiActiveInt(cfg); // v1.19：下一次来信随机间隔（5~30 分钟区间）
           dirty = true;
         }
       }
@@ -7400,7 +7501,7 @@
     window.xuWakeTick = function(){
       try{
         var cfg = actLoad(), now = Date.now(), dirty = false;
-        var msgInt = cfg.msgMin < 0 ? (cfg.msgNext > 0 ? cfg.msgNext : 15 * 60000) : cfg.msgMin * 60000;
+        var msgInt = (cfg.msgMin !== 0 && cfg.msgNext > 0) ? cfg.msgNext : (cfg.msgMin === 0 ? 0 : cfg.msgMin * 60000); // v1.19：正数分钟也走随机 msgNext
         if(cfg.msgMin !== 0 && cfg.lastMsg && now - cfg.lastMsg >= msgInt){
           var cid = pickCid();
           if(cid){
@@ -7422,7 +7523,7 @@
             });
           }
           cfg.lastMsg = now;
-          if(cfg.msgMin < 0) cfg.msgNext = (5 + Math.floor(Math.random() * 56)) * 60000;
+          cfg.msgNext = xushiActiveInt(cfg); // v1.19：下一次来信随机间隔（5~30 分钟区间）
           dirty = true;
         }
         var mailInt = cfg.mailMin < 0 ? (cfg.mailNext > 0 ? cfg.mailNext : 1440 * 60000) : cfg.mailMin * 60000;
@@ -7464,7 +7565,7 @@
       var cfg = actLoad();
       var v = Number(msgSel.value) || 0;
       cfg.msgMin = v;
-      cfg.msgNext = v < 0 ? (5 + Math.floor(Math.random() * 56)) * 60000 : 0;
+      cfg.msgNext = v !== 0 ? (5 + Math.floor(Math.random() * 56)) * 60000 : 0; // v1.19：固定分钟也随机化（范围内再抖一次）
       cfg.lastMsg = v !== 0 ? Date.now() : 0;
       actSave(cfg);
       vpToast(v !== 0 ? ("主动来信：" + msgSel.options[msgSel.selectedIndex].text) : "已关闭主动来信");
