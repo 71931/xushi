@@ -626,10 +626,10 @@
   .msg-time{font-size:10px;color:var(--ink-3);opacity:.75;padding:0 3px;line-height:1;display:flex;align-items:center;gap:2px}
   .cw-tl{text-align:center;font-size:11px;color:var(--ink-3);opacity:.8;margin:16px 0 12px;letter-spacing:1px;flex:0 0 100%;width:100%}
   /* v1.20：时间线按年份折叠——年份分组头，点击展开/收起该年全部消息 */
-  .cw-year{flex:0 0 100%;width:100%;display:flex;align-items:center;justify-content:center;margin:14px 0 10px;gap:8px}
-  .cw-year::before,.cw-year::after{content:"";flex:1;height:1px;background:rgba(0,0,0,.07)}
-  .cw-year button{border:none;background:transparent;font-size:12px;font-weight:700;color:var(--ink-2);
-    display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:12px;cursor:pointer}
+  /* v1.21：年份头改为微信式居中短胶囊——不再占满整行、去掉左右延伸横线 */
+  .cw-year{width:auto;max-width:92%;flex:none;display:flex;align-items:center;justify-content:center;margin:10px auto 8px}
+  .cw-year button{border:none;background:rgba(0,0,0,.055);font-size:11px;font-weight:500;color:var(--ink-3);
+    display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;cursor:pointer}
   .cw-year button:active{transform:scale(.95)}
   .cw-year button .cw-y-arrow{font-size:9px;opacity:.65;transition:transform .18s}
   .cw-year button.collapsed .cw-y-arrow{transform:rotate(-90deg)}
