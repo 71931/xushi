@@ -538,13 +538,6 @@
   .zk-filter-menu button:active{background:rgba(0,0,0,.06)}
   .zk-filter-menu button.on{color:#3a7afe;font-weight:700}
   .zk-filter-menu .zk-dedupe{margin-top:4px;border-top:1px solid rgba(0,0,0,.08);border-radius:0 0 9px 9px;color:#e04f4f;font-weight:600}
-  /* v1.20：字卡库上锁——列表与修改操作置灰不可点，筛选/搜索/查重等查看类操作仍可点 */
-  .zk-lock-page .folder,.zk-lock-page .sf-item,.zk-lock-page .card-item{filter:grayscale(.9);opacity:.5;pointer-events:none}
-  .zk-lock-page .f-op,.zk-lock-page .sf-del,.zk-lock-page .sf-shield,.zk-lock-page .c-del,.zk-lock-page .c-edit{pointer-events:none}
-  .zk-lock-page .zk-bar{opacity:.55}
-  .zk-lock-page .zika-add.zk-add-locked{opacity:.35;pointer-events:none}
-  .zk-lock-page .zk-empty{filter:grayscale(.8);opacity:.55}
-  .zk-lock-page .zika-top .zika-add.zk-locked{opacity:1;pointer-events:auto;color:#3a7afe}
   /* 色环弹窗 */
   .zk-wheel-wrap{position:relative;width:170px;height:170px;margin:12px auto 8px}
   .zk-wheel-wrap canvas{width:170px;height:170px;display:block}
@@ -562,8 +555,6 @@
   .cw-fab{position:static;z-index:65;width:34px;height:34px;border:none;background:transparent;
     display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;flex:0 0 auto}
   .cw-fab svg{width:20px;height:20px}
-  .cw-fab.zk-locked{color:#e08b3a}
-  #cwZkLock{margin:calc(10px + env(safe-area-inset-top)) 2px 0 0}
   #cwBack{margin:calc(10px + env(safe-area-inset-top)) 0 0 12px}
   #cwMore{margin:calc(10px + env(safe-area-inset-top)) 12px 0 0}
   .cw-menu{position:absolute;top:calc(116px + env(safe-area-inset-top));right:12px;z-index:70;min-width:190px;padding:8px;border-radius:14px;
@@ -1368,10 +1359,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="cw-heads" id="cwHeads"></div>
-      <!-- v1.18：字卡配置上锁开关——锁定后导入/恢复/清空均不改动字卡配置 -->
-      <button class="cw-fab" id="cwZkLock" aria-label="字卡上锁" title="字卡配置上锁：锁定后导入/恢复/清空都不会改动字卡">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>
-      </button>
       <button class="cw-fab" id="cwMore" aria-label="功能设置">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -1928,7 +1915,7 @@
       <div class="glass cell-group">
         <div class="cell" id="dmClearAll">
           <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></div>
-          <span class="ct">现有数据全数清空<small>清空聊天、信件、字卡、收藏、表情包、相册与设置（字卡上锁时保留字卡）</small></span>
+          <span class="ct">现有数据全数清空<small>清空聊天、信件、字卡、收藏、表情包、相册与设置</small></span>
           <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
       </div>
@@ -2199,9 +2186,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="zika-title">字卡库</div>
-      <button class="zika-add" id="zikaLock" aria-label="字卡库上锁" title="字卡库上锁：上锁后整个列表置灰不可修改" style="color:var(--ink-2)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>
-      </button>
       <button class="zika-add" id="zikaAdd" aria-label="新建文件夹">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -6403,50 +6387,7 @@
     try{ if(typeof xuScheduleSnap === "function") xuScheduleSnap(); }catch(e){}
     return true;
   }
-  // v1.18：字卡配置上锁——锁定后批量导入/全量恢复/清空均不改动字卡配置
-  var ZK_LOCK_KEY = "xushi_zk_lock_v1";
-  function zkLocked(){ try{ return localStorage.getItem(ZK_LOCK_KEY) === "1"; }catch(e){ return false; } }
-  function zkSetLock(v){
-    try{ localStorage.setItem(ZK_LOCK_KEY, v ? "1" : "0"); }catch(e){}
-    zkRenderLockBtn();
-    zkApplyLockUI();
-    try{ if(typeof xuScheduleSnap === "function") xuScheduleSnap(); }catch(e){}
-  }
-  // v1.19：锁按钮统一渲染（聊天顶栏 cwZkLock + 字卡库顶栏 zikaLock），并联动字卡库整体置灰
-  function zkRenderLockBtn(){
-    var on = zkLocked();
-    var btns = [document.getElementById("cwZkLock"), document.getElementById("zikaLock")];
-    btns.forEach(function(b){
-      if(!b) return;
-      b.classList.toggle("zk-locked", on);
-      b.setAttribute("aria-label", on ? "字卡库已上锁" : "字卡库未上锁");
-      b.setAttribute("title", on ? "字卡库已上锁：整个列表置灰不可修改，点此解锁" : "字卡库未上锁：点击上锁，整个列表将置灰不可修改");
-      b.innerHTML = on
-        ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="#fff" stroke="none"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15" r="1.6" fill="currentColor" stroke="none"/></svg>';
-    });
-  }
-  // v1.19：上锁后字卡库整页（文件夹/小文件夹/字卡列表）置灰不可点击修改，锁按钮本身可点解锁
-  function zkApplyLockUI(){
-    var on = zkLocked();
-    var pages = [document.getElementById("zikaPage"), document.getElementById("zkInner"), document.getElementById("zkCardPage")];
-    pages.forEach(function(p){ if(p) p.classList.toggle("zk-lock-page", on); });
-    var adds = [document.getElementById("zikaAdd"), document.getElementById("zkSubAdd"), document.getElementById("zkCardAdd")];
-    adds.forEach(function(a){ if(a) a.classList.toggle("zk-add-locked", on); });
-  }
-  function zkToggleLock(){
-    var next = !zkLocked();
-    zkSetLock(next);
-    vpToast(next ? "字卡库已上锁：整个列表置灰，不可修改" : "字卡库已解锁");
-  }
-  (function(){
-    var a = document.getElementById("cwZkLock");
-    if(a) a.addEventListener("click", zkToggleLock);
-    var b = document.getElementById("zikaLock");
-    if(b) b.addEventListener("click", zkToggleLock);
-    zkRenderLockBtn();
-    zkApplyLockUI();
-  })();
+
   function zkRefreshUI(){
     if(typeof renderFolders === "function") renderFolders();
     if(zkInner && zkInner.classList.contains("show")) renderSubs();
@@ -7809,20 +7750,9 @@
         }
         var local=d.localStorage||d.data||{},dbs=Array.isArray(d.indexedDB)?d.indexedDB:[];
         if(!confirm("将用备份覆盖当前叙时的全部数据，包括聊天记录、字卡、收藏、信件、表情包、头像、背景和设置。建议先导出当前备份。确定继续？"))return;
-        // v1.18：字卡上锁时保护字卡配置不被备份覆盖
-        var _zkLocked = (typeof zkLocked === "function") ? zkLocked() : false;
-        var _zkKeep = null, _zkLockKeep = null;
-        if(_zkLocked){
-          try{ _zkKeep = localStorage.getItem("glass_chat_zk_folders_v2"); _zkLockKeep = localStorage.getItem("xushi_zk_lock_v1"); }catch(e){}
-        }
         try{
           Object.keys(localStorage).forEach(function(k){localStorage.removeItem(k)});
-          Object.keys(local).forEach(function(k){
-            if(_zkLocked && (k === "glass_chat_zk_folders_v2" || k === "xushi_zk_lock_v1")) return;
-            localStorage.setItem(k,String(local[k]));
-          });
-          if(_zkLocked && _zkKeep !== null) localStorage.setItem("glass_chat_zk_folders_v2", _zkKeep);
-          if(_zkLocked && _zkLockKeep !== null) localStorage.setItem("xushi_zk_lock_v1", _zkLockKeep);
+          Object.keys(local).forEach(function(k){ localStorage.setItem(k,String(local[k])); });
         }catch(e){vpToast("恢复本地数据失败："+(e.message||e));return;}
         var restoreJobs=dbs.map(xuRestoreDb);
         xuListDbNames().then(function(names){
@@ -7883,7 +7813,7 @@
       };fr.readAsText(file);
     }
     // v1.18：ChatApp/Milk 导出文件合并导入——聊天记录并入同名会话（全追加不覆盖）、
-    // 字卡按"大文件名分组（文件夹）+ 小文件夹分类（sub）"归并、表情包一并导入；字卡上锁时跳过字卡
+    // 字卡按"大文件名分组（文件夹）+ 小文件夹分类（sub）"归并、表情包一并导入
     function xuImportChatApp(d){
       var msgs = Array.isArray(d.messages) ? d.messages : [];
       var replies = Array.isArray(d.customReplies) ? d.customReplies : [];
@@ -7927,13 +7857,10 @@
         if(typeof metaSave === "function") metaSave();
       }
       // ---- 2) 字卡：按 Milk 分组结构归并（大文件名为分组=文件夹，小文件夹为分类=sub）----
-      var zkChanged = false, zkAdded = 0, lockedNote = "";
+      var zkChanged = false, zkAdded = 0;
       var cards = replies.filter(function(r){ return typeof r === "string" && r.trim(); })
         .map(function(r, i){ return { id: "impc" + Date.now() + "_" + i, text: r, shielded: false }; });
       if(cards.length){
-        if(typeof zkLocked === "function" && zkLocked()){
-          lockedNote = "（字卡已上锁，跳过导入）";
-        } else {
           var zk = [];
           try{ var _raw0 = localStorage.getItem("glass_chat_zk_folders_v2"); if(_raw0){ var _p0 = JSON.parse(_raw0); if(Array.isArray(_p0)) zk = _p0; } }catch(e){}
           var groupName = partner + "的字卡";
@@ -7958,7 +7885,6 @@
           });
           if(typeof zkSave === "function") zkSave(zk);
           zkChanged = true;
-        }
       }
       // ---- 3) 表情包：兼容常见字段（Milk/ChatApp 标准导出一般没有表情包字段）----
       var bqAdded = 0, bqNote = "";
@@ -7988,7 +7914,7 @@
       setTimeout(function(){ try{ if(typeof xuFlushToNative === "function") xuFlushToNative(); }catch(e){} }, 300);
       var sum = [];
       if(converted.length) sum.push("聊天 " + addedChat + "/" + converted.length + " 条");
-      if(cards.length) sum.push("字卡 " + zkAdded + "/" + cards.length + " 张" + lockedNote);
+      if(cards.length) sum.push("字卡 " + zkAdded + "/" + cards.length + " 张");
       if(bqAdded) sum.push("表情包 " + bqAdded + " 个");
       vpToast("导入完成：" + (sum.join("、") || "无新数据") + bqNote + "，正在重新加载");
       setTimeout(function(){ location.reload(); }, 900);
@@ -8027,17 +7953,11 @@
       };
       fr.readAsText(f);
     });
-    // v1.18：现有数据全数清空——字卡上锁时保留字卡配置
+    // 现有数据全数清空
     var clearRow = document.getElementById("dmClearAll");
     if(clearRow) clearRow.addEventListener("click", function(){
-      if(!confirm("将清空当前叙时的全部数据：聊天记录、信件、收藏、表情包、相册、设置、转账记录等，且不可恢复！" + (typeof zkLocked === "function" && zkLocked() ? "（字卡已上锁，将保留字卡配置）" : "（字卡也会被清空）") + "\n确定继续吗？")) return;
-      var keptZk = null, keptLock = null;
-      try{ if(typeof zkLocked === "function" && zkLocked()){ keptZk = localStorage.getItem("glass_chat_zk_folders_v2"); keptLock = localStorage.getItem("xushi_zk_lock_v1"); } }catch(e){}
+      if(!confirm("将清空当前叙时的全部数据：聊天记录、信件、收藏、表情包、相册、设置、转账记录等，且不可恢复！\n确定继续吗？")) return;
       try{ Object.keys(localStorage).forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
-      if(keptZk !== null){
-        try{ localStorage.setItem("glass_chat_zk_folders_v2", keptZk); }catch(e){}
-        try{ localStorage.setItem("xushi_zk_lock_v1", keptLock || "1"); }catch(e){}
-      }
       // 清空 IndexedDB 全部对象仓库，避免旧数据在启动恢复时回填
       if(typeof xuListDbNames === "function" && typeof xuOpenDbForBackup === "function" && typeof xuClearStore === "function"){
         xuListDbNames().then(function(names){
@@ -8048,10 +7968,7 @@
             });
           }));
         }).then(function(){
-          if(keptZk !== null && typeof zkSave === "function"){
-            try{ var _zkp = JSON.parse(keptZk); if(Array.isArray(_zkp)) zkSave(_zkp); }catch(e){}
-          }
-          vpToast("已清空全部数据" + (keptZk !== null ? "（字卡已保留）" : "") + "，正在重新加载");
+          vpToast("已清空全部数据，正在重新加载");
           setTimeout(function(){ location.reload(); }, 600);
         }).catch(function(){ location.reload(); });
       } else {
