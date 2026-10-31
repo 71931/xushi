@@ -1008,6 +1008,7 @@
   .cw-shot-actions button svg{width:19px;height:19px;flex:0 0 auto}
   .cw-shot-actions .sa-cancel{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2)}
   .cw-shot-actions .sa-save{background:#fff;color:#111}
+  .cw-shot-actions .sa-split{background:rgba(255,255,255,.28);color:#fff;border:1px solid rgba(255,255,255,.38)}
   /* 批量模式：复用原本的输入框（原位内联多行） */
   .cw-bar.batch-mode #cwInput{display:none}
   .cw-bar .cw-batch-inline{display:none;flex:1 1 auto;min-height:36px;max-height:96px;box-sizing:border-box;
@@ -1147,14 +1148,6 @@
   .survey .sv-state-bar:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:1px}
   .survey .sv-state-bar.done{color:#4f8270;background:rgba(220,240,229,.42)}.survey .sv-state-bar.refused{color:#a46e78;background:rgba(248,225,230,.42)}
   .survey .sv-state-bar.wait{color:#8a7a57;background:rgba(244,236,214,.38)}
-  /* 桌宠 */
-  .xu-pet-fab{position:fixed;right:14px;bottom:100px;z-index:180;width:84px;height:104px;border:0;background:transparent;display:none;flex-direction:column;align-items:center;justify-content:center;filter:drop-shadow(0 6px 10px rgba(42,53,73,.18));touch-action:none;cursor:grab;user-select:none}
-  .xu-pet-fab.show{display:flex;animation:xuPetFloat 3.2s ease-in-out infinite}.xu-pet-fab.charging .pet-bowl{opacity:1;transform:scale(1)}.xu-pet-fab.low .pet-aura{stroke:#d58b8b}.xu-pet-fab.charging .pet-body{animation:xuPetNibble .42s ease-in-out infinite alternate}.xu-pet-fab.low .pet-eyes{transform:translateY(3px)}
-  .xu-pet-face{width:72px;height:76px;display:flex;align-items:center;justify-content:center;position:relative;background:transparent}.xu-pet-face svg{width:72px;height:76px;overflow:visible}.xu-pet-name{font-size:10px;color:#596983;background:rgba(255,255,255,.92);border:1px solid rgba(142,157,181,.18);padding:3px 8px;border-radius:8px;margin-top:0;white-space:nowrap}
-  .pet-bowl{opacity:0;transform:scale(.65);transform-origin:center;transition:.25s}.pet-eyes{transform-origin:center;transition:.25s}.xu-pet-low-label{font-size:9px;color:#a15f66;background:#fff1f1;padding:2px 5px;border-radius:6px;margin-bottom:2px;display:none}.xu-pet-fab.low .xu-pet-low-label{display:block}
-  @keyframes xuPetFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}@keyframes xuPetNibble{from{translate:0 0;rotate:-2deg}to{translate:0 2px;rotate:2deg}}
-  .xu-pet-panel{position:fixed;right:14px;bottom:210px;z-index:181;width:min(260px,calc(100vw - 32px));padding:15px;border-radius:18px;background:rgba(250,252,255,.97);border:1px solid rgba(255,255,255,.95);box-shadow:0 12px 35px rgba(36,48,68,.2);display:none;color:#303c50;backdrop-filter:blur(18px)}
-  .xu-pet-panel.show{display:block;animation:xuPetPanelIn .18s ease-out}.xu-pet-panel h4{font-size:14px;margin:0 0 7px}.xu-pet-panel p{font-size:12px;line-height:1.65;color:#738099;margin-bottom:10px}.xu-pet-panel .pet-battery{height:7px;background:#e7eaf0;border-radius:99px;overflow:hidden;margin:8px 0 5px}.xu-pet-panel .pet-battery span{height:100%;width:60%;display:block;background:linear-gradient(90deg,#a5b9d8,#7894bd);border-radius:99px;transition:width .3s}.xu-pet-panel .pet-status{font-size:10px;color:#7b8799}.xu-pet-panel button{border:0;border-radius:10px;background:#647da7;color:#fff;padding:8px 10px;font-size:12px;margin-right:5px;margin-top:7px}.xu-pet-panel button.secondary{background:#e9edf4;color:#52617a}@keyframes xuPetPanelIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
 </style>
 <style id="xu-11-7-visual-redesign">
@@ -1328,7 +1321,6 @@
             <span class="arr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></span>
           </div>
         </div>
-        <div class="glass cell-group" style="cursor:pointer" id="xuPetSetting"><div class="cell" style="border:0"><div class="ci">🐾</div><span class="ct">桌宠</span><span class="cv" id="xuPetStatus">后续开放</span><span class="arr">›</span></div></div>
         <div class="glass cell-group" style="cursor:pointer" id="xuVersionStatus"><div class="cell" style="border:0"><div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div><span class="ct">版本状态</span><span class="cv" id="xuVerLabel">测试版 v1.17</span><span class="arr">›</span></div></div>
       </section>
     </div>
@@ -1536,6 +1528,10 @@
         <button class="sa-save" id="cwShotSave" type="button" aria-label="保存到相册">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.4 10.6L12 15.2l4.6-4.6"/><path d="M4.5 19.2h15"/></svg>
           保存
+        </button>
+        <button class="sa-split" id="cwShotSplit" type="button" aria-label="切成多张保存">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14M15 5v14"/><path d="M3 8h4M17 8h4M3 16h4M17 16h4"/></svg>
+          切成多张
         </button>
       </div>
     </div>
@@ -5215,6 +5211,8 @@
         }
       }
     });
+    shotLayout = items.map(function(it){ return { y: it.y, h: it.h }; });
+    shotDpr = DP;
     return c;
   }
   // v97：导出统一走原生桥 saveFile（直接写公共下载目录）；无原生桥时回退 a.click 下载（原生 DownloadListener 已支持 data: 协议）
@@ -5308,10 +5306,56 @@
     try{ if(window.XuNative && typeof XuNative.saveShotToGallery === "function") XuNative.saveShotToGallery(name, url); }catch(e){} // 同时存入系统相册（Pictures/叙时）
     if(typeof mselExit === "function") mselExit(); else shotExit();
   }
+  // v1.23：聊天记录过长时，把长截图按消息边界切成多张导出（每张都完整包含整条消息）
+  var shotLayout = null, shotDpr = 2;
+  function shotSplit(){
+    if(!shotCanvas){ vpToast("请先生成截图"); return; }
+    if(!shotLayout || !shotLayout.length){ shotSave(); return; }
+    var SEG = 1400, DP = shotDpr || 2; // 每张目标高度（逻辑像素），长消息不会被从中间切断
+    var H = shotCanvas.height / DP;
+    var parts = [], segStart = 0, segY0 = 0, i;
+    for(i = 0; i < shotLayout.length; i++){
+      var it = shotLayout[i], itemEnd = it.y + it.h;
+      if(itemEnd - segY0 > SEG && i > segStart){
+        parts.push({ y0: segY0, y1: Math.max(segY0, it.y), i0: segStart, i1: i - 1 });
+        segStart = i; segY0 = it.y;
+      }
+    }
+    if(segStart < shotLayout.length){
+      parts.push({ y0: segY0, y1: H, i0: segStart, i1: shotLayout.length - 1 });
+    }
+    if(!parts.length){ shotSave(); return; }
+    var who = "";
+    try{ who = String(chatCurName() || "").trim(); }catch(e){}
+    var base = "叙时-" + (who || "聊天") + "-" + new Date().getTime();
+    var ok = 0;
+    parts.forEach(function(p, pi){
+      var sub = document.createElement("canvas");
+      var ph = Math.max(1, Math.round((p.y1 - p.y0) * DP));
+      sub.width = shotCanvas.width;
+      sub.height = ph;
+      var sctx = sub.getContext("2d");
+      sctx.drawImage(shotCanvas, 0, Math.max(0, Math.round(p.y0 * DP)), shotCanvas.width, ph, 0, 0, sub.width, ph);
+      var url = null, nm = (parts.length > 1 ? base + "-" + (pi + 1) : base) + ".jpg";
+      try{ url = sub.toDataURL("image/jpeg", 0.82); }catch(e){}
+      if(!url){ try{ url = sub.toDataURL("image/png"); nm = nm.replace(".jpg", ".png"); }catch(e2){ return; } }
+      if(!albumAdd(url, nm)) return;
+      ok++;
+      try{ if(window.XuNative && typeof XuNative.saveShotToGallery === "function") XuNative.saveShotToGallery(nm, url); }catch(e){}
+    });
+    if(ok > 0){
+      vpToast(parts.length > 1 ? ("已切成 " + parts.length + " 张保存到相册") : "已保存到相册");
+      if(typeof mselExit === "function") mselExit(); else shotExit();
+    }else{
+      vpToast("切分保存失败，请尝试去掉外链图片后再截图");
+    }
+  }
   // v77：截图不再提供时间戳/已读开关，绘制时固定关闭这两项
   var cwShotSave = document.getElementById("cwShotSave");
   var cwShotCancel = document.getElementById("cwShotCancel");
+  var cwShotSplit = document.getElementById("cwShotSplit");
   if(cwShotSave) cwShotSave.addEventListener("click", shotSave);
+  if(cwShotSplit) cwShotSplit.addEventListener("click", shotSplit);
   if(cwShotCancel) cwShotCancel.addEventListener("click", function(){ shotExit(); });
   // 操作菜单：快捷回复(表情) / 收藏 / 引用 / 编辑 / 多选 / 删除
   var cwQuick = document.getElementById("cwQuick");
@@ -5797,7 +5841,7 @@
   // v45：语音消息点击 → 播放（MiniMax 优先，未配置/失败回退系统语音）
   cwScroll.addEventListener("click", function(e){
     var card = e.target.closest(".msg-voice");
-    if(!card || !curCid) return;
+    if(!card || !curCid || shotActive) return;
     var vi = parseInt(card.getAttribute("data-vi"), 10);
     var data = cwLoad()[curCid] || { msgs: [] };
     var m = data.msgs[vi];
@@ -5807,7 +5851,7 @@
   // v45：气泡外转文字按钮 → 切换气泡下方文字显示
   cwScroll.addEventListener("click", function(e){
     var btn = e.target.closest('.mv-tt[data-act="mvtext"]');
-    if(!btn || !curCid) return;
+    if(!btn || !curCid || shotActive) return;
     var vi = parseInt(btn.getAttribute("data-vi"), 10);
     var data = cwLoad()[curCid] || { msgs: [] };
     var m = data.msgs[vi];
@@ -8706,11 +8750,6 @@ var letterMask=document.createElement('div');letterMask.className='xu-modal-mask
   window.addEventListener('pagehide',xuFlushLocalData);
   window.addEventListener('beforeunload',xuFlushLocalData);
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')xuFlushLocalData();});
-  // v11.3：桌宠目前只保留入口，功能后续再开发。
-  (function(){
-    var setting=document.getElementById('xuPetSetting');
-    if(setting){setting.addEventListener('click',function(){var st=document.getElementById('xuPetStatus');if(st)st.textContent='后续开放';vpToast('桌宠功能后续开放');});}
-  })();
 
   // v1.18：版本状态弹窗——启动自动检查，发现新版本直接弹窗可升级；检查更新直接下载安装或提示已是最新
   (function(){
