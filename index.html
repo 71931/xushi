@@ -4922,7 +4922,9 @@
             fg: tcs ? tcs.color : (isOut ? "rgba(255,255,255,.95)" : "rgba(28,30,34,.82)"),
             bg: tcs ? tcs.backgroundColor : (isOut ? "rgba(255,255,255,.24)" : "rgba(255,255,255,.85)"),
             bd: tcs ? tcs.borderTopColor : (isOut ? "rgba(255,255,255,.42)" : "rgba(28,30,34,.16)"),
-            w: tr.w, h: tr.h
+            // v1.23.1：背景高度按实际行数重算（截图量算字体与手机界面字体有偏差时，
+            // 照抄界面 tr.h 会矮于文字，导致行尾/行尾字画到背景外）
+            w: tr.w, h: Math.max(tr.h, Math.ceil(tLines.length * tlh + tpt + tpb + tbw * 2))
           };
           it.h = it.vh + 5 + it.tb.h;
         }
@@ -5118,7 +5120,9 @@
         ctx.fillStyle = it.tb.fg;
         ctx.textAlign = "left"; ctx.textBaseline = "top";
         it.tb.lines.forEach(function(l, i){
-          ctx.fillText(l, tx + it.tb.pl + it.tb.bw, ty + it.tb.pt + it.tb.bw + i * it.tb.lh + (it.tb.lh - it.tb.fs) * 0.18);
+          // maxWidth 兜底：即使量算宽度略小于实际渲染宽度，也强制文字不超出背景块
+          ctx.fillText(l, tx + it.tb.pl + it.tb.bw, ty + it.tb.pt + it.tb.bw + i * it.tb.lh + (it.tb.lh - it.tb.fs) * 0.18,
+            Math.max(1, it.tb.w - it.tb.pl - it.tb.pr - it.tb.bw * 2));
         });
         }
       }else if(it.kind === "img"){
