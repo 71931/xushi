@@ -625,7 +625,7 @@
   .cw-year button .cw-y-arrow{font-size:9px;opacity:.65;transition:transform .18s}
   .cw-year button.collapsed .cw-y-arrow{transform:rotate(-90deg)}
   .cw-year .cw-y-cnt{font-size:10px;font-weight:600;color:var(--ink-3);opacity:.8}
-  /* v1.30：微信式居中短时间戳——相邻消息间隔≥30分钟时插入；居中短胶囊，不占满整行 */
+  /* v1.31：微信式居中短时间戳——相邻消息间隔≥30分钟时插入；居中短胶囊，不占满整行 */
   .cw-tgap{flex:none;align-self:center;margin:9px 0 5px;display:flex;align-items:center;justify-content:center}
   .cw-tgap span{background:rgba(0,0,0,.06);color:var(--ink-3);font-size:11px;line-height:1;padding:4px 9px;border-radius:8px;letter-spacing:.2px}
   /* v69：已读显示文字版（统一颜色，无高亮）——已送达/已接收/已读；颜色由 JS 按背景深浅反色 */
@@ -2958,7 +2958,7 @@
     }
     var nowY = new Date().getFullYear();
     var lastYear = 0; // v1.20：时间线按年份折叠——年份变化处插分组头，默认当年展开、往年折叠
-    var prevTs = 0; // v1.30：相邻消息间隔≥30分钟时，在对话中间插入微信式居中短时间戳
+    var prevTs = 0; // v1.31：相邻消息间隔≥30分钟时，在对话中间插入微信式居中短时间戳
     for(var i = showStart; i < list.length; i++){
       var m = list[i];
       var mi = i;
@@ -2993,7 +2993,7 @@
         lastYear = tlYear;
         yJustAdded = true;
       }
-      // v1.30：相邻消息间隔≥30分钟，在对话中间插入微信式居中短时间戳（今天只显示时分；昨天/更早带日期；刚插过年份头则不再重复插）
+      // v1.31：相邻消息间隔≥30分钟，在对话中间插入微信式居中短时间戳（今天只显示时分；昨天/更早带日期；刚插过年份头则不再重复插）
       var gapEl = null;
       if(ts && prevTs && !yJustAdded && (ts - prevTs) >= 30 * 60 * 1000){
         var gd = new Date(ts), gNow = new Date();
@@ -3059,7 +3059,7 @@
       }
       var timeSpan = "";
       if(typeof tsShowGlobal === "undefined" || tsShowGlobal){
-        // v1.30：消息底部时间默认只显示「时分」；点击可切换为完整「年月日 时分」
+        // v1.31：消息底部时间默认只显示「时分」；点击可切换为完整「年月日 时分」
         if(ts){
           var dKey = curCid + "_" + mi;
           var showFull = !!chatTimeDetail[dKey];
@@ -3086,13 +3086,13 @@
           var fullTxt = shortTxt + " " + (hh2 < 10 ? "0" : "") + hh2 + ":" + (mn2 < 10 ? "0" : "") + mn2;
           var isFull = sp.getAttribute("data-tl-detail") === "1";
           chatTimeDetail[curCid + "_" + mm] = !isFull;
-          // v1.30：点击在「时分」与完整「年月日 时分」间切换
+          // v1.31：点击在「时分」与完整「年月日 时分」间切换
           var hh3 = (hh2 < 10 ? "0" : "") + hh2 + ":" + (mn2 < 10 ? "0" : "") + mn2;
           sp.textContent = isFull ? hh3 : fullTxt;
           sp.setAttribute("data-tl-detail", isFull ? "0" : "1");
         });
       }
-      // v1.20：年份折叠——折叠年份的消息隐藏（v1.30：该年的分隔时间戳一并隐藏）
+      // v1.20：年份折叠——折叠年份的消息隐藏（v1.31：该年的分隔时间戳一并隐藏）
       if(tlYear){
         var yk = curCid + "_" + tlYear;
         var yOpen2 = (tlYear === nowY) ? (chatYearOpen[yk] !== false) : (chatYearOpen[yk] === true);
@@ -3100,7 +3100,7 @@
       }
       if(mselActive && mselSet[mi]) it.classList.add("sel-on", "sel-ring");
       cwScroll.appendChild(it);
-      if(ts) prevTs = ts; // v1.30：记住上一条有时间戳的消息，用于判断是否插入半小时间隔时间戳
+      if(ts) prevTs = ts; // v1.31：记住上一条有时间戳的消息，用于判断是否插入半小时间隔时间戳
     }
     if(typeof cwApplyAppearance === "function") cwApplyAppearance();
     applyReadIcons();
@@ -4792,7 +4792,7 @@
   function shotDraw(seg, tsOn, readOn){
     var W = Math.min(430, Math.max(320, window.innerWidth || 430));
     var PAD = 16, HEAD = 100, AVA = 34, AGAP = 8;
-    // v1.30：截图时间戳与界面一致——消息底部只画时分；间隔≥30分钟画居中短胶囊
+    // v1.31：截图时间戳与界面一致——消息底部只画时分；间隔≥30分钟画居中短胶囊
     function shotHm2(ts){
       var d = new Date(ts);
       return (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
@@ -4931,7 +4931,7 @@
         return lines;
       }catch(e){ return null; }
     }
-    var sPrevTs = 0; // v1.30：截图与界面一致——相邻消息间隔≥30分钟时插入居中短时间戳胶囊
+    var sPrevTs = 0; // v1.31：截图与界面一致——相邻消息间隔≥30分钟时插入居中短时间戳胶囊
     seg.forEach(function(o){
       var m = o.m, mi = o.mi, isOut = m.from === "out";
       var mt0 = Number(m.ts) || 0;
@@ -5099,7 +5099,7 @@
     // ===== 第二遍：绘制 =====
     items.forEach(function(it){
       if(it.kind === "tgap"){
-        // v1.30：微信式居中短时间戳胶囊（截图与聊天界面一致）
+        // v1.31：微信式居中短时间戳胶囊（截图与聊天界面一致）
         var gTxt2 = shotGapTxtOf(it.m);
         ctx.font = "11px " + SHOT_FONT;
         var gw = ctx.measureText(gTxt2).width + 18;
@@ -5281,7 +5281,7 @@
         ctx.globalAlpha = 1;
       }
       // v75：时间戳 / 已读 —— 放在头像正下方、按头像列居中，不再贴着气泡
-      // v1.30：截图消息底部时间只画时分（与界面一致）；无 ts 时回退 m.time
+      // v1.31：截图消息底部时间只画时分（与界面一致）；无 ts 时回退 m.time
       var tsText = tsOn ? (Number(it.m.ts) ? shotHm2(Number(it.m.ts)) : (it.m.time || "")) : "";
       if(tsText || it.readTag){
         var ty2 = Math.max(by + it.h, it.y + AVA) + 4;
@@ -5503,7 +5503,7 @@
       sub.width = shotCanvas.width;
       sub.height = ph;
       var sctx = sub.getContext("2d");
-      sctx.scale(DP, DP); // v1.30：与 shotDraw 生成长图一致，切分画布统一到逻辑坐标，否则 shotDrawHeader 按逻辑像素画顶栏会只落在左上角区域（顶栏错乱/挤在一起）
+      sctx.scale(DP, DP); // v1.31：与 shotDraw 生成长图一致，切分画布统一到逻辑坐标，否则 shotDrawHeader 按逻辑像素画顶栏会只落在左上角区域（顶栏错乱/挤在一起）
       // 每张先画消息区（跳过原图自带顶栏，避免首张顶栏叠两层），再统一重画顶栏
       var sy = Math.max(HEAD, p.y0);
       var sh = Math.min(partH, H - sy);
@@ -7662,13 +7662,20 @@
       var cid = pickCid();
       var meta = (metaLoad()[cid] || {});
       var who = meta.note || meta.name || "TA";
-      var body = zkPickText(cid) || "最近还好吗？有些话想写给你。";
+      // v1.31：主动写信至少用 20 句字卡连成一封信（去重收集，字卡不足则用全部）
+      var lines = [], guard = 0;
+      while(lines.length < 20 && guard++ < 80){
+        var t2 = zkPickText(cid) || "";
+        if(t2 && t2 !== "当前未配置字卡" && lines.indexOf(t2) < 0) lines.push(t2);
+      }
+      if(!lines.length) lines = ["最近还好吗？有些话想写给你。"];
+      var body = lines.join("\n");
       var arr = mailLoad();
       arr.unshift({ title: who + " 的来信", prev: body, time: "今天 " + cwTimeNow() });
       mailSave(arr.slice(0, MAIL_MAX));
       renderDynMail();
       try{window.dispatchEvent(new CustomEvent("xuishi-active-letter",{detail:{fromName:who,body:body,created:Date.now(),cid:cid}}));}catch(e){}
-      notify(who + " 给你写了一封信", body, cid);
+      notify(who + " 给你写了一封信", body.length > 80 ? body.slice(0, 80) + "…" : body, cid);
     }
     function tick(){
       // v93：向原生层上报 JS 心跳，用于区分"APP关闭（需闹钟兜底）"与"进程存活（静默重排）"
