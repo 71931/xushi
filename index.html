@@ -4832,6 +4832,57 @@
       if(r.width <= 0 || r.height <= 0) return null; // display:none 的转文字块等
       return { w: Math.round(r.width), h: Math.round(r.height), l: Math.round(r.left - wrapEl.getBoundingClientRect().left), t: Math.round(r.top - wrapEl.getBoundingClientRect().top) };
     }
+    // v1.28：量纯文本容器的真实换行行数（Range.getClientRects），截图行数照抄界面，不再依赖估算
+    function domLinesOf(el){
+      if(!el) return 1;
+      try{
+        var rng = document.createRange();
+        rng.selectNodeContents(el);
+        var rects = rng.getClientRects();
+        var tops = [], i;
+        for(i = 0; i < rects.length; i++){
+          var r = rects[i];
+          if(r.height <= 0 || r.width <= 0) continue;
+          var t = Math.round(r.top);
+          if(tops.indexOf(t) < 0) tops.push(t);
+        }
+        return Math.max(1, tops.length);
+      }catch(e){ return 1; }
+    }
+    // v1.28：量纯文本容器的真实换行点（Range.getClientRects 跨行检测 + 二分），
+    // 拆行结果与界面渲染完全一致，彻底摆脱字体宽度估算（估算系数偏大会导致“几个字就换行”）
+    function domSplitLines(el){
+      if(!el) return null;
+      try{
+        var tn = el.firstChild;
+        if(!tn || tn.nodeType !== 3) return null;
+        var text = tn.textContent || "";
+        if(!text) return [""];
+        var lines = [], start = 0, n = text.length;
+        while(start < n){
+          var lo = start, hi = n;
+          while(lo < hi){
+            var mid = (lo + hi + 1) >> 1;
+            var rng = document.createRange();
+            rng.setStart(tn, start); rng.setEnd(tn, mid);
+            var rects = rng.getClientRects();
+            if(rects.length <= 0){ hi = mid - 1; continue; }
+            if(rects.length === 1){ lo = mid; }
+            else { hi = mid - 1; }
+          }
+          var lineText = text.slice(start, lo);
+          if(!lineText){
+            var ch2 = text[start];
+            if(ch2 === "\n"){ lines.push(""); start++; continue; }
+            lines.push(ch2); start++; continue;
+          }
+          lines.push(lineText);
+          start = lo;
+          if(start < n && text[start] === "\n") start++;
+        }
+        return lines;
+      }catch(e){ return null; }
+    }
     seg.forEach(function(o){
       var m = o.m, mi = o.mi, isOut = m.from === "out";
       var it = { mi: mi, m: m, isOut: isOut, y: y };
@@ -4845,7 +4896,7 @@
         var qbw = qcs ? px(qcs.borderTopWidth, 1) : 1;
         var qmax = Math.min(240, maxB);
         // v1.26.1：引用文本换行改固定估算宽度（与界面渲染一致，避免 canvas 量算偏差导致窄列）
-        var qLines = shotLinesEst(String(m.quote.text), Math.max(60, qmax - qpl - qpr - qbw * 2), qfs, 4);
+        var qLines = domSplitLines(wrapEl ? wrapEl.querySelector(".quote-origin .origin-text") : null) || shotLinesEst(String(m.quote.text), Math.max(60, qmax - qpl - qpr - qbw * 2), qfs, 4);
         var qw = 0;
         qLines.forEach(function(l){ var tw = 0; for(var k = 0; k < l.length; k++){ var c = l.charCodeAt(k); tw += (c > 255) ? qfs : qfs * 0.55; } qw = Math.max(qw, tw); });
         it.q = {
@@ -4925,7 +4976,7 @@
           var tbw = tcs ? px(tcs.borderTopWidth, 1) : 1;
           mctx.font = fontOf(tcs, 13.5, "400");
           // v1.25：换行改固定估算宽度，与界面实际渲染一致，不再出现“几个字就换行”
-          var tLines = shotLinesEst(String(m.text || ""), Math.max(40, tr.w - tpl - tpr - tbw * 2), tfs, 20);
+          var tLines = domSplitLines(wrapEl ? wrapEl.querySelector(".mv-text") : null) || shotLinesEst(String(m.text || ""), Math.max(40, tr.w - tpl - tpr - tbw * 2), tfs, 20);
           it.tb = {
             lines: tLines, fs: tfs, lh: tlh, pt: tpt, pb: tpb, pl: tpl, pr: tpr, bw: tbw,
             fw: tcs ? (tcs.fontWeight || "400") : "400",
@@ -4943,12 +4994,20 @@
         it.skin = skinOf(mi, ".msg", isOut);
         var sk = it.skin;
         var contentMax = Math.max(60, maxB - (it.q ? QT : 0) - sk.pl - sk.pr - sk.bw * 2);
-        // v1.26.1：文本气泡换行改固定估算宽度（全角≈字号、半角≈0.55×字号），与手机界面渲染一致，不再“几个字就换行”
-        it.lines = shotLinesEst(String(m.text || ""), contentMax, sk.fs, 500);
-        var tw0 = 0;
-        it.lines.forEach(function(l){ var tw = 0; for(var k = 0; k < l.length; k++){ var c = l.charCodeAt(k); tw += (c > 255) ? sk.fs : sk.fs * 0.55; } tw0 = Math.max(tw0, tw); });
-        it.w = Math.max(44, Math.min(maxB - (it.q ? QT : 0), Math.ceil(tw0) + sk.pl + sk.pr + sk.bw * 2));
-        it.h = Math.max(30, it.lines.length * sk.lh + sk.pt + sk.pb + sk.bw * 2);
+        // v1.28：文本气泡直接照抄界面 .msg 真实尺寸（宽/高），行数用真实 DOM Range 量算，
+        // 彻底消除固定估算与手机浏览器渲染偏差导致的“几个字就换行”窄列
+        var tr2 = rectOf(wrapEl, ".msg");
+        if(tr2 && tr2.w > 0 && tr2.h > 0){
+          it.w = Math.min(maxB - (it.q ? QT : 0), tr2.w);
+          it.h = tr2.h;
+          it.lines = domSplitLines(wrapEl ? wrapEl.querySelector(".msg") : null) || shotLinesEst(String(m.text || ""), Math.max(40, it.w - sk.pl - sk.pr - sk.bw * 2), sk.fs, domLinesOf(wrapEl ? wrapEl.querySelector(".msg") : null));
+        }else{
+          it.lines = shotLinesEst(String(m.text || ""), contentMax, sk.fs, 500);
+          var tw0 = 0;
+          it.lines.forEach(function(l){ var tw = 0; for(var k = 0; k < l.length; k++){ var c = l.charCodeAt(k); tw += (c > 255) ? sk.fs : sk.fs * 0.55; } tw0 = Math.max(tw0, tw); });
+          it.w = Math.max(44, Math.min(maxB - (it.q ? QT : 0), Math.ceil(tw0) + sk.pl + sk.pr + sk.bw * 2));
+          it.h = Math.max(30, it.lines.length * sk.lh + sk.pt + sk.pb + sk.bw * 2);
+        }
       }
       it.readTag = "";
       if(readOn && isOut && chatCfg.readShow && chatCfg.readShow.on){
@@ -5307,26 +5366,43 @@
   }
   // v78：顶栏绘制抽取为全局函数——切分出的每一张都重画完整顶栏（背景 + 双头像 + 昵称 + 副标题），返回 taName 供消息区使用
   function shotDrawHeader(ctx, W, HEAD){
-    ctx.fillStyle = "rgba(255,255,255,.07)";
+    // v1.28：顶栏样式对齐用户参考图——灰紫渐变背景 + 浅粉色五角星（#F4BFD8）+ 居中双头像 + 白粗昵称 + 浅灰副标题
+    var g = ctx.createLinearGradient(0, 0, 0, HEAD);
+    g.addColorStop(0, "#322f36");
+    g.addColorStop(0.55, "#443a46");
+    g.addColorStop(1, "#57465a");
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, HEAD);
-    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    ctx.save();
+    ctx.fillStyle = "rgba(244,191,216,.5)";
+    var stars = [[0.06,0.24,7],[0.22,0.5,6],[0.36,0.22,7],[0.64,0.3,6],[0.82,0.55,7],[0.94,0.26,8]];
+    stars.forEach(function(s){
+      var sx = W * s[0], sy = HEAD * s[1], sr = s[2];
+      ctx.save(); ctx.translate(sx, sy); ctx.beginPath();
+      for(var k = 0; k < 5; k++){
+        var a1 = -Math.PI / 2 + k * Math.PI * 2 / 5, a2 = a1 + Math.PI / 5;
+        if(k === 0) ctx.moveTo(Math.cos(a1) * sr, Math.sin(a1) * sr);
+        else ctx.lineTo(Math.cos(a1) * sr, Math.sin(a1) * sr);
+        ctx.lineTo(Math.cos(a2) * sr * 0.45, Math.sin(a2) * sr * 0.45);
+      }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    });
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, HEAD - 0.5); ctx.lineTo(W, HEAD - 0.5); ctx.stroke();
     var meta = (metaLoad()[curCid] || {});
     var taName = meta.note || meta.name || "对方";
     var cx = W / 2;
-    ctx.save();
-    ctx.beginPath(); ctx.arc(cx - 14, 36, 19, 0, Math.PI * 2); ctx.closePath();
-    ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill(); ctx.restore();
-    shotDrawAva(ctx, cx - 14, 36, 19, avatarCfg.ta, (taName || "对").slice(-1), !!avatarCfg.taMirror);
-    shotDrawAva(ctx, cx + 14, 36, 19, avatarCfg.me, "我", !!avatarCfg.meMirror);
+    shotDrawAva(ctx, cx - 14, 37, 19, avatarCfg.ta, (taName || "对").slice(-1), !!avatarCfg.taMirror);
+    shotDrawAva(ctx, cx + 14, 37, 19, avatarCfg.me, "我", !!avatarCfg.meMirror);
     ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
     ctx.fillStyle = "#fff";
-    ctx.font = "600 13px " + SHOT_FONT;
-    ctx.fillText(taName, cx, 72);
-    ctx.fillStyle = "rgba(255,255,255,.45)";
-    ctx.font = "10px " + SHOT_FONT;
-    ctx.fillText("聊天记录", cx, 87);
+    ctx.font = "700 15px " + SHOT_FONT;
+    ctx.fillText(taName, cx, 74);
+    ctx.fillStyle = "rgba(255,255,255,.72)";
+    ctx.font = "11px " + SHOT_FONT;
+    ctx.fillText("聊天记录", cx, 91);
     return taName;
   }
   function shotSplit(){
