@@ -4733,6 +4733,29 @@
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
+  // v1.25：转文字块换行用固定估算宽度（全角≈字号、半角≈0.55×字号），
+  // 不依赖 canvas 字体测量，避免与界面渲染宽度偏差导致“几个字就换行”的窄列
+  function shotLinesEst(text, maxW, fs, maxLines){
+    function w(s){
+      var w = 0;
+      for(var k = 0; k < s.length; k++){
+        var c = s.charCodeAt(k);
+        w += (c > 255) ? fs : fs * 0.55;
+      }
+      return w;
+    }
+    var out = [], cur = "";
+    var arr = String(text == null ? "" : text).replace(/\r/g, "").split("");
+    for(var i = 0; i < arr.length; i++){
+      var ch = arr[i];
+      if(ch === "\n"){ out.push(cur); cur = ""; if(maxLines && out.length >= maxLines) break; continue; }
+      if(w(cur + ch) > maxW && cur){ out.push(cur); cur = ch; }
+      else cur += ch;
+      if(maxLines && out.length >= maxLines) break;
+    }
+    if((cur || !out.length) && !(maxLines && out.length >= maxLines)) out.push(cur);
+    return out;
+  }
   function shotLines(ctx, text, maxW, maxLines){
     var out = [], cur = "";
     var arr = String(text == null ? "" : text).replace(/\r/g, "").split("");
@@ -4915,7 +4938,8 @@
           var tpt = tcs ? px(tcs.paddingTop, 7) : 7, tpb = tcs ? px(tcs.paddingBottom, 7) : 7;
           var tbw = tcs ? px(tcs.borderTopWidth, 1) : 1;
           mctx.font = fontOf(tcs, 13.5, "400");
-          var tLines = shotLines(mctx, String(m.text || ""), Math.max(40, tr.w - tpl - tpr - tbw * 2), 20);
+          // v1.25：换行改固定估算宽度，与界面实际渲染一致，不再出现“几个字就换行”
+          var tLines = shotLinesEst(String(m.text || ""), Math.max(40, tr.w - tpl - tpr - tbw * 2), tfs, 20);
           it.tb = {
             lines: tLines, fs: tfs, lh: tlh, pt: tpt, pb: tpb, pl: tpl, pr: tpr, bw: tbw,
             fw: tcs ? (tcs.fontWeight || "400") : "400",
