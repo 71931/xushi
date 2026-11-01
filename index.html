@@ -4756,20 +4756,8 @@
     if((cur || !out.length) && !(maxLines && out.length >= maxLines)) out.push(cur);
     return out;
   }
-  function shotLines(ctx, text, maxW, maxLines){
-    var out = [], cur = "";
-    var arr = String(text == null ? "" : text).replace(/\r/g, "").split("");
-    for(var i = 0; i < arr.length; i++){
-      var ch = arr[i];
-      if(ch === "\n"){ out.push(cur); cur = ""; if(maxLines && out.length >= maxLines) break; continue; }
-      var test = cur + ch;
-      if(ctx.measureText(test).width > maxW && cur){ out.push(cur); cur = ch; }
-      else cur = test;
-      if(maxLines && out.length >= maxLines) break;
-    }
-    if((cur || !out.length) && !(maxLines && out.length >= maxLines)) out.push(cur);
-    return out;
-  }
+  // v1.26.1：所有截图换行统一走 shotLinesEst（固定估算宽度），不再用 canvas measureText 量算，
+  // 避免 canvas 字体与手机界面字体宽度不一致导致“几个字就换行”的窄列。shotLines 已删除。
   // v74：截图完全按聊天界面的真实样式绘制（气泡色/语音转文字/引用/时间戳位置都与界面一致）
   function shotDraw(seg, tsOn, readOn){
     var W = Math.min(430, Math.max(320, window.innerWidth || 430));
@@ -4856,10 +4844,10 @@
         var qpl = qcs ? px(qcs.paddingLeft, 10) : 10, qpr = qcs ? px(qcs.paddingRight, 10) : 10;
         var qbw = qcs ? px(qcs.borderTopWidth, 1) : 1;
         var qmax = Math.min(240, maxB);
-        mctx.font = fontOf(qcs, 12, "400");
-        var qLines = shotLines(mctx, m.quote.text, Math.max(60, qmax - qpl - qpr - qbw * 2), 4);
+        // v1.26.1：引用文本换行改固定估算宽度（与界面渲染一致，避免 canvas 量算偏差导致窄列）
+        var qLines = shotLinesEst(String(m.quote.text), Math.max(60, qmax - qpl - qpr - qbw * 2), qfs, 4);
         var qw = 0;
-        qLines.forEach(function(l){ qw = Math.max(qw, mctx.measureText(l).width); });
+        qLines.forEach(function(l){ var tw = 0; for(var k = 0; k < l.length; k++){ var c = l.charCodeAt(k); tw += (c > 255) ? qfs : qfs * 0.55; } qw = Math.max(qw, tw); });
         it.q = {
           lines: qLines, fs: qfs, lh: qlh, pt: qpt, pb: qpb, pl: qpl, pr: qpr, bw: qbw,
           fw: qcs ? (qcs.fontWeight || "400") : "400",
@@ -4878,13 +4866,11 @@
         it.w = Math.min(maxB, Math.max(190, sr ? sr.w : Math.min(300, W * .78)));
         var sp = 13, innerW = it.w - sp * 2;
         var qfs = 14, qlh = 20;
-        mctx.font = "700 " + qfs + "px " + SHOT_FONT;
-        it.sqLines = shotLines(mctx, m.q || "", innerW, 100);
+        it.sqLines = shotLinesEst(String(m.q || ""), innerW, qfs, 100);
         it.sqFs=qfs; it.sqLh=qlh; it.sp=sp;
         it.sOpts=[];
         (m.opts || []).forEach(function(opt, oi){
-          mctx.font = "400 12px " + SHOT_FONT;
-          var lines = shotLines(mctx, String(opt), innerW - 28, 100);
+          var lines = shotLinesEst(String(opt), innerW - 28, 12, 100);
           it.sOpts.push({lines:lines, on:(Array.isArray(m.my)?m.my.indexOf(oi)>=0:m.my===oi), text:String(opt)});
         });
         it.sMode = m.mode === "multi" ? "多选" : "单选";
@@ -4957,10 +4943,10 @@
         it.skin = skinOf(mi, ".msg", isOut);
         var sk = it.skin;
         var contentMax = Math.max(60, maxB - (it.q ? QT : 0) - sk.pl - sk.pr - sk.bw * 2);
-        mctx.font = sk.fw + " " + sk.fs + "px " + SHOT_FONT;
-        it.lines = shotLines(mctx, m.text || "", contentMax, 500);
+        // v1.26.1：文本气泡换行改固定估算宽度（全角≈字号、半角≈0.55×字号），与手机界面渲染一致，不再“几个字就换行”
+        it.lines = shotLinesEst(String(m.text || ""), contentMax, sk.fs, 500);
         var tw0 = 0;
-        it.lines.forEach(function(l){ tw0 = Math.max(tw0, mctx.measureText(l).width); });
+        it.lines.forEach(function(l){ var tw = 0; for(var k = 0; k < l.length; k++){ var c = l.charCodeAt(k); tw += (c > 255) ? sk.fs : sk.fs * 0.55; } tw0 = Math.max(tw0, tw); });
         it.w = Math.max(44, Math.min(maxB - (it.q ? QT : 0), Math.ceil(tw0) + sk.pl + sk.pr + sk.bw * 2));
         it.h = Math.max(30, it.lines.length * sk.lh + sk.pt + sk.pb + sk.bw * 2);
       }
@@ -5014,7 +5000,7 @@
         ctx.fillStyle = it.q.fg;
         ctx.textAlign = "left"; ctx.textBaseline = "top";
         it.q.lines.forEach(function(l, i){
-          ctx.fillText(l, qx + it.q.pl + it.q.bw, by + it.q.pt + it.q.bw + i * it.q.lh + (it.q.lh - it.q.fs) * 0.18);
+          ctx.fillText(l, qx + it.q.pl + it.q.bw, by + it.q.pt + it.q.bw + i * it.q.lh + (it.q.lh - it.q.fs) * 0.18, Math.max(1, it.q.w - it.q.pl - it.q.pr - it.q.bw * 2));
         });
         // v78：连接线——贴在引卡靠头像侧的外沿，横跨「引卡底边 → 气泡顶边」整段间隙，深浅背景都清晰可见
         var lx = isOut ? (qx + it.q.w + 4) : (qx - 4);
@@ -5037,7 +5023,8 @@
         ctx.fillStyle = sk.fg;
         ctx.textAlign = "left"; ctx.textBaseline = "top";
         it.lines.forEach(function(l, i){
-          ctx.fillText(l, bx + sk.pl + sk.bw, by + sk.pt + sk.bw + i * sk.lh + (sk.lh - sk.fs) * 0.18);
+          // v1.26.1：maxWidth 兜底——即使估算宽度略小于实际渲染宽度，也强制文字不超出气泡
+          ctx.fillText(l, bx + sk.pl + sk.bw, by + sk.pt + sk.bw + i * sk.lh + (sk.lh - sk.fs) * 0.18, Math.max(1, it.w - sk.pl - sk.pr - sk.bw * 2));
         });
       }else if(it.kind === "voice"){
         var vs = it.vskin;
@@ -5345,6 +5332,7 @@
   function shotSplit(){
     if(!shotCanvas){ vpToast("请先生成截图"); return; }
     if(!shotLayout || !shotLayout.length){ shotSave(); return; }
+    var HEAD = 100; // 与 shotDraw 内一致：截图顶栏高度（逻辑像素）
     var SEG = Math.max(560, (window.innerHeight || 844) - HEAD), DP = shotDpr || 2; // 每张目标高=一屏减顶栏（逻辑像素），长消息不会被从中间切断
     var H = shotCanvas.height / DP;
     var parts = [], segStart = 0, segY0 = 0, i;
