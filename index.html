@@ -4994,54 +4994,14 @@
       g.addColorStop(0, "#2c323b"); g.addColorStop(1, "#171a1f");
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
-    // ===== 顶栏（与聊天页一致） =====
-    ctx.fillStyle = "rgba(255,255,255,.07)";
-    ctx.fillRect(0, 0, W, HEAD);
-    ctx.strokeStyle = "rgba(255,255,255,.12)";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, HEAD - 0.5); ctx.lineTo(W, HEAD - 0.5); ctx.stroke();
-    var meta = (metaLoad()[curCid] || {});
-    var taName = meta.note || meta.name || "对方";
-    var cx = W / 2;
-    function drawAva(x, yy, r, src, letter, mirror){
-      var img = src ? shotImgCache[src] : null;
-      if(img){
-        ctx.save();
-        ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
-        // 与聊天界面 cwApplyAppearance 的头像镜像设置保持一致。
-        if(typeof mirror === "undefined") mirror = (src === avatarCfg.ta && !!avatarCfg.taMirror) || (src === avatarCfg.me && !!avatarCfg.meMirror);
-        if(mirror){ ctx.translate(x,0);ctx.scale(-1,1);ctx.drawImage(img,-r,yy-r,r*2,r*2); }
-        else { ctx.drawImage(img, x-r, yy-r, r*2, r*2); }
-        ctx.restore();
-      }else{
-        ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,.88)";
-        ctx.font = "13px " + SHOT_FONT;
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(letter || "", x, yy + 0.5);
-      }
-      ctx.strokeStyle = "rgba(255,255,255,.22)";
-      ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.save();
-    ctx.beginPath(); ctx.arc(cx - 14, 36, 19, 0, Math.PI * 2); ctx.closePath();
-    ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill(); ctx.restore();
-    drawAva(cx - 14, 36, 19, avatarCfg.ta, (taName || "对").slice(-1), !!avatarCfg.taMirror);
-    drawAva(cx + 14, 36, 19, avatarCfg.me, "我", !!avatarCfg.meMirror);
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#fff";
-    ctx.font = "600 13px " + SHOT_FONT;
-    ctx.fillText(taName, cx, 72);
-    ctx.fillStyle = "rgba(255,255,255,.45)";
-    ctx.font = "10px " + SHOT_FONT;
-    ctx.fillText("聊天记录", cx, 87);
+    // ===== 顶栏（与聊天页一致）：v78 抽取为全局函数 shotDrawHeader，切分出的每张图都会重画顶栏 =====
+    var taName = shotDrawHeader(ctx, W, HEAD);
     // ===== 第二遍：绘制 =====
     items.forEach(function(it){
       var isOut = it.isOut, by = it.y;
       var avaSrc = isOut ? avatarCfg.me : avatarCfg.ta;
       var avaCx = isOut ? (W - PAD - AVA / 2) : (PAD + AVA / 2);
-      drawAva(avaCx, by + AVA / 2, AVA / 2, avaSrc, isOut ? "我" : String(taName || "对").slice(0, 1), isOut ? !!avatarCfg.meMirror : !!avatarCfg.taMirror);
+      shotDrawAva(ctx, avaCx, by + AVA / 2, AVA / 2, avaSrc, isOut ? "我" : String(taName || "对").slice(0, 1), isOut ? !!avatarCfg.meMirror : !!avatarCfg.taMirror);
       // 引用小卡（在上）+ 连接线
       var bx = isOut ? (xR - (it.q ? QTR : 0) - it.w) : (xL + (it.q ? QT : 0));
       if(it.q){
@@ -5336,10 +5296,56 @@
   }
   // v1.23：聊天记录过长时，把长截图按消息边界切成多张导出（每张都完整包含整条消息）
   var shotLayout = null, shotDpr = 2;
+  // v78：头像绘制抽取为全局函数（shotDraw 与 shotSplit 共用）
+  function shotDrawAva(ctx, x, yy, r, src, letter, mirror){
+    var img = src ? shotImgCache[src] : null;
+    if(img){
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+      // 与聊天界面 cwApplyAppearance 的头像镜像设置保持一致。
+      if(typeof mirror === "undefined") mirror = (src === avatarCfg.ta && !!avatarCfg.taMirror) || (src === avatarCfg.me && !!avatarCfg.meMirror);
+      if(mirror){ ctx.translate(x,0);ctx.scale(-1,1);ctx.drawImage(img,-r,yy-r,r*2,r*2); }
+      else { ctx.drawImage(img, x-r, yy-r, r*2, r*2); }
+      ctx.restore();
+    }else{
+      ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.16)"; ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.88)";
+      ctx.font = "13px " + SHOT_FONT;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(letter || "", x, yy + 0.5);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.22)";
+    ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  // v78：顶栏绘制抽取为全局函数——切分出的每一张都重画完整顶栏（背景 + 双头像 + 昵称 + 副标题），返回 taName 供消息区使用
+  function shotDrawHeader(ctx, W, HEAD){
+    ctx.fillStyle = "rgba(255,255,255,.07)";
+    ctx.fillRect(0, 0, W, HEAD);
+    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, HEAD - 0.5); ctx.lineTo(W, HEAD - 0.5); ctx.stroke();
+    var meta = (metaLoad()[curCid] || {});
+    var taName = meta.note || meta.name || "对方";
+    var cx = W / 2;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx - 14, 36, 19, 0, Math.PI * 2); ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fill(); ctx.restore();
+    shotDrawAva(ctx, cx - 14, 36, 19, avatarCfg.ta, (taName || "对").slice(-1), !!avatarCfg.taMirror);
+    shotDrawAva(ctx, cx + 14, 36, 19, avatarCfg.me, "我", !!avatarCfg.meMirror);
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#fff";
+    ctx.font = "600 13px " + SHOT_FONT;
+    ctx.fillText(taName, cx, 72);
+    ctx.fillStyle = "rgba(255,255,255,.45)";
+    ctx.font = "10px " + SHOT_FONT;
+    ctx.fillText("聊天记录", cx, 87);
+    return taName;
+  }
   function shotSplit(){
     if(!shotCanvas){ vpToast("请先生成截图"); return; }
     if(!shotLayout || !shotLayout.length){ shotSave(); return; }
-    var SEG = 1400, DP = shotDpr || 2; // 每张目标高度（逻辑像素），长消息不会被从中间切断
+    var SEG = Math.max(560, (window.innerHeight || 844) - HEAD), DP = shotDpr || 2; // 每张目标高=一屏减顶栏（逻辑像素），长消息不会被从中间切断
     var H = shotCanvas.height / DP;
     var parts = [], segStart = 0, segY0 = 0, i;
     for(i = 0; i < shotLayout.length; i++){
@@ -5359,11 +5365,17 @@
     var ok = 0;
     parts.forEach(function(p, pi){
       var sub = document.createElement("canvas");
-      var ph = Math.max(1, Math.round((p.y1 - p.y0) * DP));
+      var W2 = shotCanvas.width / DP;
+      var partH = Math.max(0, p.y1 - p.y0);                // 消息区高度（逻辑像素）
+      var ph = Math.max(1, Math.round((partH + HEAD) * DP)); // 总高 = 顶栏 + 消息区 ≈ 一屏
       sub.width = shotCanvas.width;
       sub.height = ph;
       var sctx = sub.getContext("2d");
-      sctx.drawImage(shotCanvas, 0, Math.max(0, Math.round(p.y0 * DP)), shotCanvas.width, ph, 0, 0, sub.width, ph);
+      // v78：每张先画消息区（跳过原图自带顶栏，避免首张顶栏叠两层），再统一重画顶栏
+      var sy = Math.max(0, Math.round(Math.max(HEAD, p.y0) * DP));
+      var sh = Math.min(Math.round(partH * DP), shotCanvas.height - sy);
+      if(sh > 0){ sctx.drawImage(shotCanvas, 0, sy, shotCanvas.width, sh, 0, Math.round(HEAD * DP), sub.width, sh); }
+      shotDrawHeader(sctx, W2, HEAD);
       var url = null, nm = (parts.length > 1 ? base + "-" + (pi + 1) : base) + ".jpg";
       try{ url = sub.toDataURL("image/jpeg", 0.82); }catch(e){}
       if(!url){ try{ url = sub.toDataURL("image/png"); nm = nm.replace(".jpg", ".png"); }catch(e2){ return; } }
