@@ -5435,10 +5435,11 @@
       sub.width = shotCanvas.width;
       sub.height = ph;
       var sctx = sub.getContext("2d");
-      // v78：每张先画消息区（跳过原图自带顶栏，避免首张顶栏叠两层），再统一重画顶栏
-      var sy = Math.max(0, Math.round(Math.max(HEAD, p.y0) * DP));
-      var sh = Math.min(Math.round(partH * DP), shotCanvas.height - sy);
-      if(sh > 0){ sctx.drawImage(shotCanvas, 0, sy, shotCanvas.width, sh, 0, Math.round(HEAD * DP), sub.width, sh); }
+      sctx.scale(DP, DP); // v1.29：与 shotDraw 生成长图一致，切分画布统一到逻辑坐标，否则 shotDrawHeader 按逻辑像素画顶栏会只落在左上角区域（顶栏错乱/挤在一起）
+      // 每张先画消息区（跳过原图自带顶栏，避免首张顶栏叠两层），再统一重画顶栏
+      var sy = Math.max(HEAD, p.y0);
+      var sh = Math.min(partH, H - sy);
+      if(sh > 0){ sctx.drawImage(shotCanvas, 0, Math.round(sy * DP), shotCanvas.width, Math.round(sh * DP), 0, HEAD, W2, sh); }
       shotDrawHeader(sctx, W2, HEAD);
       var url = null, nm = (parts.length > 1 ? base + "-" + (pi + 1) : base) + ".jpg";
       try{ url = sub.toDataURL("image/jpeg", 0.82); }catch(e){}
